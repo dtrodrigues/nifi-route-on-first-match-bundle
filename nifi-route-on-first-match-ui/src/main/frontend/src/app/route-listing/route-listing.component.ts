@@ -28,12 +28,13 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { Observable } from 'rxjs';
 import { ProcessorDetails, RouteOnFirstMatchService } from '../service/route-on-first-match.service';
 import {
-    deleteRouteUpdates,
-    PropertyUpdates,
-    reorderUpdates,
+    ConfigurationUpdate,
+    deleteRouteUpdate,
+    isDisplayedOrderChanged,
+    reorderUpdate,
     Route,
     routeNameError,
-    saveRouteUpdates,
+    saveRouteUpdate,
     toRoutes,
     UNMATCHED
 } from './route-order';
@@ -81,6 +82,7 @@ export class RouteListing {
     saveError = signal<string | null>(null);
     processorName = signal('');
     validationErrors = signal<string[]>([]);
+    displayedOrderChanged = signal(false);
     routes = signal<Route[]>([]);
     editing = signal<string | null>(null);
 
@@ -118,7 +120,12 @@ export class RouteListing {
         const reordered = [...this.routes()];
         moveItemInArray(reordered, event.previousIndex, event.currentIndex);
         this.routes.set(reordered);
-        this.save(reorderUpdates(reordered));
+        this.save(reorderUpdate(reordered));
+    }
+
+    /** Saves the order shown here again, which also puts the Evaluation Order property back. */
+    restoreDisplayedOrder(): void {
+        this.save(reorderUpdate(this.routes()));
     }
 
     startEdit(route: Route): void {
@@ -155,30 +162,30 @@ export class RouteListing {
             expression: this.routeForm.getRawValue().expression
         };
         const originalName = editing === NEW_ROUTE ? null : editing;
-        this.save(saveRouteUpdates(this.routes(), route, originalName), () => this.editing.set(null));
+        this.save(saveRouteUpdate(this.routes(), route, originalName), () => this.editing.set(null));
     }
 
     deleteRoute(route: Route): void {
-        this.save(deleteRouteUpdates(this.routes(), route.name), () => {
+        this.save(deleteRouteUpdate(this.routes(), route.name), () => {
             if (this.editing() === route.name) {
                 this.editing.set(null);
             }
         });
     }
 
-    private save(updates: PropertyUpdates, onSuccess?: () => void): void {
+    private save(update: ConfigurationUpdate, onSuccess?: () => void): void {
         this.saving.set(true);
         this.saveError.set(null);
         this.setFormEnabled();
 
-        const request$: Observable<ProcessorDetails> = this.service.saveProperties(
+        const request$: Observable<ProcessorDetails> = this.service.saveConfiguration(
             {
                 processorId: this.processorId,
                 revision: this.revision,
                 clientId: this.clientId,
                 disconnectedNodeAcknowledged: this.disconnectedNodeAcknowledged
             },
-            updates
+            update
         );
 
         request$.subscribe({
@@ -204,7 +211,8 @@ export class RouteListing {
             this.clientId = details.revision.clientId;
         }
         this.processorName.set(details.name);
-        this.routes.set(toRoutes(details.properties ?? {}));
+        this.routes.set(toRoutes(details.properties ?? {}, details.annotationData));
+        this.displayedOrderChanged.set(isDisplayedOrderChanged(details.properties ?? {}, details.annotationData));
         this.validationErrors.set(details.validationErrors ?? []);
     }
 

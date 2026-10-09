@@ -22,6 +22,7 @@ import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -40,9 +41,18 @@ class TestRouteOnFirstMatch {
         runner.setProperty("large", "${size:gt(100)}");
     }
 
+    /**
+     * Sets the order the way the Advanced UI does: in the annotation data, and displayed in the Evaluation Order property
+     */
+    private void setOrder(final String... names) {
+        final String quoted = String.join(", ", Arrays.stream(names).map("\"%s\""::formatted).toList());
+        runner.setAnnotationData("{\"evaluationOrder\": [%s]}".formatted(quoted));
+        runner.setProperty(RouteOnFirstMatch.EVALUATION_ORDER, String.join("\n", names));
+    }
+
     @Test
     void testRoutesToFirstMatchInEvaluationOrder() {
-        runner.setProperty(RouteOnFirstMatch.EVALUATION_ORDER, "urgent\nlarge");
+        setOrder("urgent", "large");
 
         runner.enqueue(new byte[0], Map.of("priority", "urgent", "size", "500"));
         runner.enqueue(new byte[0], Map.of("priority", "normal", "size", "500"));
@@ -64,7 +74,7 @@ class TestRouteOnFirstMatch {
 
     @Test
     void testReversedEvaluationOrder() {
-        runner.setProperty(RouteOnFirstMatch.EVALUATION_ORDER, "large\nurgent");
+        setOrder("large", "urgent");
 
         runner.enqueue(new byte[0], Map.of("priority", "urgent", "size", "500"));
         runner.run();
@@ -75,7 +85,7 @@ class TestRouteOnFirstMatch {
     @Test
     void testUnlistedConditionsEvaluatedAlphabeticallyAfterListed() {
         runner.setProperty("big", "${size:gt(10)}");
-        runner.setProperty(RouteOnFirstMatch.EVALUATION_ORDER, "urgent");
+        setOrder("urgent");
 
         runner.enqueue(new byte[0], Map.of("priority", "normal", "size", "500"));
         runner.run();
@@ -84,15 +94,62 @@ class TestRouteOnFirstMatch {
     }
 
     @Test
-    void testInvalidWhenEvaluationOrderNamesUnknownCondition() {
-        runner.setProperty(RouteOnFirstMatch.EVALUATION_ORDER, "urgent\nmissing");
+    void testOrderedRoutesThatNoLongerExistAreIgnored() {
+        setOrder("removed", "large", "urgent");
+        runner.assertValid();
+
+        runner.enqueue(new byte[0], Map.of("priority", "urgent", "size", "500"));
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred("large", 1);
+    }
+
+    @Test
+    void testUnorderedRoutesUseAlphabeticalOrderWithoutAnnotationData() {
+        runner.assertValid();
+
+        runner.enqueue(new byte[0], Map.of("priority", "urgent", "size", "500"));
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred("large", 1);
+    }
+
+    @Test
+    void testInvalidWhenDisplayedOrderIsEditedOutsideAdvancedUi() {
+        setOrder("urgent", "large");
+        runner.assertValid();
+
+        runner.setProperty(RouteOnFirstMatch.EVALUATION_ORDER, "large\nurgent");
+        runner.assertNotValid();
+
+        runner.removeProperty(RouteOnFirstMatch.EVALUATION_ORDER);
+        runner.assertNotValid();
+
+        // Blank lines and surrounding whitespace do not change the order
+        runner.setProperty(RouteOnFirstMatch.EVALUATION_ORDER, " urgent \n\nlarge\n");
+        runner.assertValid();
+    }
+
+    @Test
+    void testInvalidWhenOrderIsTypedWithoutAdvancedUi() {
+        runner.setProperty(RouteOnFirstMatch.EVALUATION_ORDER, "large\nurgent");
         runner.assertNotValid();
     }
 
     @Test
-    void testInvalidWhenEvaluationOrderHasDuplicates() {
-        runner.setProperty(RouteOnFirstMatch.EVALUATION_ORDER, "urgent\nlarge\nurgent");
-        runner.assertNotValid();
+    void testInvalidWhenAnnotationDataIsMalformed() {
+        for (final String annotationData : List.of("not json", "[\"urgent\"]", "{\"evaluationOrder\": \"urgent\"}", "{\"evaluationOrder\": [1]}")) {
+            runner.setAnnotationData(annotationData);
+            runner.assertNotValid();
+        }
+    }
+
+    @Test
+    void testEvaluationOrderFromAnnotationData() {
+        assertEquals(List.of(), EvaluationOrder.fromAnnotationData(null));
+        assertEquals(List.of(), EvaluationOrder.fromAnnotationData(" "));
+        assertEquals(List.of(), EvaluationOrder.fromAnnotationData("{}"));
+        assertEquals(List.of("b", "a"), EvaluationOrder.fromAnnotationData("{\"evaluationOrder\": [\"b\", \"a\"]}"));
     }
 
     @Test
@@ -136,7 +193,7 @@ class TestRouteOnFirstMatch {
     @Test
     void testResolveEvaluationOrder() {
         assertEquals(List.of("c", "a", "b", "d"),
-                RouteOnFirstMatch.resolveEvaluationOrder(" c \n\nmissing\na\n", Set.of("d", "b", "a", "c")));
-        assertEquals(List.of("a", "b"), RouteOnFirstMatch.resolveEvaluationOrder(null, Set.of("b", "a")));
+                RouteOnFirstMatch.resolveEvaluationOrder(List.of("c", "missing", "a", "c"), Set.of("d", "b", "a", "c")));
+        assertEquals(List.of("a", "b"), RouteOnFirstMatch.resolveEvaluationOrder(List.of(), Set.of("b", "a")));
     }
 }

@@ -33,6 +33,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.Validator;
 import org.apache.nifi.expression.AttributeExpression.ResultType;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
@@ -55,15 +56,15 @@ import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Routes each FlowFile to exactly one relationship: the one belonging to the first user-defined expression that evaluates to true.
- * Expressions are evaluated in the order given by the Evaluation Order property, which the processor's Advanced UI maintains
- * through drag and drop.
+ * The evaluation order is set by drag and drop in the processor's Advanced UI and stored in the processor's annotation data,
+ * which the configuration dialog does not show. The Evaluation Order property displays that order and cannot be used to change it.
  */
 @SideEffectFree
 @SupportsBatching(defaultDuration = DefaultRunDuration.TWENTY_FIVE_MILLIS)
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @Tags({"attributes", "routing", "first", "match", "priority", "ordered", "Expression Language"})
 @CapabilityDescription("Routes FlowFiles to the first relationship whose Expression Language condition evaluates to true. Conditions are evaluated "
-        + "in the order given by the Evaluation Order property, which can be rearranged by drag and drop in the Advanced UI. A FlowFile is never "
+        + "in the order set by drag and drop in the Advanced UI, which the Evaluation Order property displays. A FlowFile is never "
         + "cloned: it is routed to exactly one relationship, or to 'unmatched' if no condition evaluates to true.")
 @DynamicProperty(name = "Relationship Name", value = "Expression Language expression that returns a boolean value indicating whether or not the FlowFile matches",
         expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES,
@@ -81,13 +82,13 @@ import java.util.concurrent.atomic.AtomicReference;
         For each route that a FlowFile might be routed to, add a new property. The name of the property is the name of the relationship, \
         and the value is an Expression Language expression that returns a boolean value.
 
-        Open the Advanced UI and drag the routes into the order in which they should be evaluated, or set the "Evaluation Order" property \
-        to the route names, one per line, highest priority first.
+        Open the Advanced UI and drag the routes into the order in which they should be evaluated, highest priority first. \
+        The order can only be changed in the Advanced UI; the "Evaluation Order" property shows it but cannot change it.
 
         For example:
             - "urgent" = "${priority:equals('urgent')}"
             - "large" = "${fileSize:gt(1000000)}"
-            - "Evaluation Order" = "urgent" and "large" on separate lines
+            - In the Advanced UI, "urgent" is dragged above "large"
 
         A FlowFile that is urgent and large is routed only to `urgent`. A FlowFile that matches neither condition is routed to `unmatched`.
         """
@@ -98,11 +99,11 @@ public class RouteOnFirstMatch extends AbstractProcessor {
 
     public static final PropertyDescriptor EVALUATION_ORDER = new PropertyDescriptor.Builder()
             .name("Evaluation Order")
-            .description("The names of the user-defined properties, one per line, in the order in which their expressions are evaluated. "
-                    + "User-defined properties that are not listed are evaluated after the listed ones, in alphabetical order. "
-                    + "This property is maintained by the Advanced UI.")
+            .description("Read-only. Shows the routes, one per line, in the order in which they are evaluated, as set in the Advanced UI. "
+                    + "The order can only be changed in the Advanced UI: editing this property makes the processor invalid until it "
+                    + "matches the Advanced UI again. Routes that are not listed are evaluated after the listed ones, in alphabetical order.")
             .required(false)
-            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .addValidator(Validator.VALID)
             .build();
 
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
@@ -185,8 +186,8 @@ public class RouteOnFirstMatch extends AbstractProcessor {
                     .build());
         }
 
-        // Evaluation Order lists one stripped name per line, so it cannot refer to a name containing a line break
-        // or surrounded by whitespace; such a route would silently fall back to alphabetical order
+        // The Evaluation Order property lists one stripped name per line, so it cannot show a name containing a line break
+        // or surrounded by whitespace
         for (final String name : conditionNames) {
             if (name.contains("\n") || name.contains("\r")) {
                 results.add(new ValidationResult.Builder()
@@ -203,23 +204,29 @@ public class RouteOnFirstMatch extends AbstractProcessor {
             }
         }
 
-        final Set<String> seen = new HashSet<>();
-        for (final String name : parseEvaluationOrder(validationContext.getProperty(EVALUATION_ORDER).getValue())) {
-            if (!seen.add(name)) {
-                results.add(new ValidationResult.Builder()
-                        .subject(EVALUATION_ORDER.getDisplayName())
-                        .input(name)
-                        .valid(false)
-                        .explanation("'%s' is listed more than once".formatted(name))
-                        .build());
-            } else if (!conditionNames.contains(name)) {
-                results.add(new ValidationResult.Builder()
-                        .subject(EVALUATION_ORDER.getDisplayName())
-                        .input(name)
-                        .valid(false)
-                        .explanation("'%s' does not match the name of any user-defined property".formatted(name))
-                        .build());
-            }
+        final List<String> evaluationOrder;
+        try {
+            evaluationOrder = EvaluationOrder.fromAnnotationData(validationContext.getAnnotationData());
+        } catch (final IllegalArgumentException e) {
+            results.add(new ValidationResult.Builder()
+                    .subject(EVALUATION_ORDER.getDisplayName())
+                    .valid(false)
+                    .explanation(e.getMessage() + "; reorder the routes in the Advanced UI to replace it")
+                    .build());
+            return results;
+        }
+
+        // The property only displays the order kept in the annotation data, so reject any edit made to it outside the Advanced UI
+        final String displayedOrder = validationContext.getProperty(EVALUATION_ORDER).getValue();
+        if (!parseDisplayedOrder(displayedOrder).equals(evaluationOrder)) {
+            final String expected = evaluationOrder.isEmpty() ? "remove its value"
+                    : "set it back to " + String.join(", ", evaluationOrder.stream().map("'%s'"::formatted).toList());
+            results.add(new ValidationResult.Builder()
+                    .subject(EVALUATION_ORDER.getDisplayName())
+                    .input(displayedOrder)
+                    .valid(false)
+                    .explanation("the order can only be changed in the Advanced UI; reorder the routes there, or " + expected)
+                    .build());
         }
 
         return results;
@@ -239,7 +246,7 @@ public class RouteOnFirstMatch extends AbstractProcessor {
             }
         }
 
-        final List<String> orderedNames = resolveEvaluationOrder(context.getProperty(EVALUATION_ORDER).getValue(), dynamicDescriptors.keySet());
+        final List<String> orderedNames = resolveEvaluationOrder(EvaluationOrder.fromAnnotationData(context.getAnnotationData()), dynamicDescriptors.keySet());
         final List<Route> newRoutes = new ArrayList<>(orderedNames.size());
         for (final String name : orderedNames) {
             final Relationship relationship = new Relationship.Builder().name(name).build();
@@ -271,12 +278,13 @@ public class RouteOnFirstMatch extends AbstractProcessor {
     }
 
     /**
-     * Orders the given condition names: those listed in the Evaluation Order come first, in that order,
-     * followed by any remaining names in alphabetical order. Listed names that are not conditions are ignored.
+     * Orders the given condition names: those in the evaluation order come first, in that order,
+     * followed by any remaining names in alphabetical order. Names that are not conditions, such as routes
+     * since removed in the configuration dialog, are ignored.
      */
-    static List<String> resolveEvaluationOrder(final String evaluationOrder, final Set<String> conditionNames) {
+    static List<String> resolveEvaluationOrder(final List<String> evaluationOrder, final Set<String> conditionNames) {
         final Set<String> ordered = new LinkedHashSet<>();
-        for (final String name : parseEvaluationOrder(evaluationOrder)) {
+        for (final String name : evaluationOrder) {
             if (conditionNames.contains(name)) {
                 ordered.add(name);
             }
@@ -287,12 +295,12 @@ public class RouteOnFirstMatch extends AbstractProcessor {
         return List.copyOf(ordered);
     }
 
-    private static List<String> parseEvaluationOrder(final String evaluationOrder) {
-        if (evaluationOrder == null) {
+    private static List<String> parseDisplayedOrder(final String displayedOrder) {
+        if (displayedOrder == null) {
             return List.of();
         }
 
-        return evaluationOrder.lines()
+        return displayedOrder.lines()
                 .map(String::strip)
                 .filter(line -> !line.isEmpty())
                 .toList();

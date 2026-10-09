@@ -34,7 +34,7 @@
                     Routes are evaluated from top to bottom. Each FlowFile is sent to the first route whose expression
                     returns true.
                     @if (editable) {
-                        Drag a route by its handle to change its priority.
+                        Drag a route by its handle to change its priority. The order can only be changed here.
                     } @else {
                         The processor must be stopped to change routes.
                     }
@@ -50,6 +50,16 @@
             </div>
             @if (saveError(); as saveError) {
                 <div class="flex items-center"><i class="fa fa-warning caution-color mr-2"></i>{{ saveError }}</div>
+            }
+            @if (displayedOrderChanged() && editable) {
+                <div class="flex items-center gap-x-2">
+                    <i class="fa fa-warning caution-color"></i>
+                    <span
+                        >The Evaluation Order property was edited outside this window, so the processor is invalid. The
+                        order below is still the one in use.</span
+                    >
+                    <button mat-stroked-button [disabled]="saving()" (click)="restoreDisplayedOrder()">Restore</button>
+                </div>
             }
             @for (validationError of validationErrors(); track validationError) {
                 <div class="flex items-center">

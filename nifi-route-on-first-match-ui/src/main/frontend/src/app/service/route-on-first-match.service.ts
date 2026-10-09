@@ -17,7 +17,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { PropertyUpdates } from '../route-listing/route-order';
+import { ConfigurationUpdate } from '../route-listing/route-order';
 
 export interface ProcessorDetails {
     id: string;
@@ -27,6 +27,7 @@ export interface ProcessorDetails {
         version: number;
         clientId: string | null;
     };
+    annotationData: string | null;
     properties: Record<string, string | null>;
     validationErrors: string[] | null;
 }
@@ -49,7 +50,7 @@ export class RouteOnFirstMatchService {
         return this.httpClient.get<ProcessorDetails>(`${RouteOnFirstMatchService.API}/processor/details`, { params });
     }
 
-    saveProperties(request: SaveRequest, properties: PropertyUpdates): Observable<ProcessorDetails> {
+    saveConfiguration(request: SaveRequest, update: ConfigurationUpdate): Observable<ProcessorDetails> {
         const params = new HttpParams()
             .set('processorId', request.processorId)
             .set('revisionId', request.revision)
@@ -57,8 +58,8 @@ export class RouteOnFirstMatchService {
             .set('disconnectedNodeAcknowledged', request.disconnectedNodeAcknowledged);
 
         return this.httpClient.put<ProcessorDetails>(
-            `${RouteOnFirstMatchService.API}/processor/properties`,
-            properties,
+            `${RouteOnFirstMatchService.API}/processor/configuration`,
+            update,
             {
                 params
             }

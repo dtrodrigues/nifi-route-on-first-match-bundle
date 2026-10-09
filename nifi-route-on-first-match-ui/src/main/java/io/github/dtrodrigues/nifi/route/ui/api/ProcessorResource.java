@@ -47,16 +47,24 @@ public class ProcessorResource extends AbstractRouteResource {
     @PUT
     @Produces({MediaType.APPLICATION_JSON})
     @Consumes({MediaType.APPLICATION_JSON})
-    @Path("/properties")
-    public Response setProperties(@QueryParam("processorId") final String processorId, @QueryParam("revisionId") final Long revisionId,
-                                  @QueryParam("clientId") final String clientId, @QueryParam("disconnectedNodeAcknowledged") final Boolean isDisconnectionAcknowledged,
-                                  Map<String, String> properties) {
+    @Path("/configuration")
+    public Response setConfiguration(@QueryParam("processorId") final String processorId, @QueryParam("revisionId") final Long revisionId,
+                                     @QueryParam("clientId") final String clientId, @QueryParam("disconnectedNodeAcknowledged") final Boolean isDisconnectionAcknowledged,
+                                     final ConfigurationUpdate update) {
 
         final NiFiWebConfigurationContext nifiWebContext = getWebConfigurationContext();
         final NiFiWebConfigurationRequestContext niFiRequestContext = ProcessorWebUtils.getRequestContext(processorId, revisionId, clientId, isDisconnectionAcknowledged, request);
-        final ComponentDetails componentDetails = nifiWebContext.updateComponent(niFiRequestContext, null, properties);
+        // The order (annotation data) and the routes (properties) are saved together, so a rename and its new place in the order apply at once
+        final ComponentDetails componentDetails = nifiWebContext.updateComponent(niFiRequestContext, update.annotationData(), update.properties());
         final Response.ResponseBuilder response = ProcessorWebUtils.applyCacheControl(Response.ok(componentDetails));
         return response.build();
+    }
+
+    /**
+     * @param annotationData the evaluation order, or null to leave it unchanged
+     * @param properties the properties to change; a null value removes the property
+     */
+    public record ConfigurationUpdate(String annotationData, Map<String, String> properties) {
     }
 
 }

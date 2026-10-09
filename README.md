@@ -11,8 +11,9 @@ otherwise end up chaining several `RouteOnAttribute` processors. RouteOnFirstMat
 
 - Each user-defined property is a route. Its name becomes a relationship, and its value is an
   Expression Language condition that returns `true` or `false`.
-- Routes are evaluated in the order given by the **Evaluation Order** property: route names, one
-  per line, highest priority first. Routes left out of the list are evaluated after it, alphabetically.
+- Routes are evaluated in the order you set by dragging them in the processor's **Advanced** UI,
+  highest priority first. Routes not yet placed, such as ones added in the configuration dialog,
+  are evaluated after the others, alphabetically.
 - Evaluation stops at the first match. A FlowFile is never cloned.
 - FlowFiles that match nothing go to `unmatched`.
 - The chosen route is written to the `RouteOnFirstMatch.Route` attribute.
@@ -23,11 +24,11 @@ Example:
 |--------------------|---------------------------------|
 | `urgent`           | `${priority:equals('urgent')}`  |
 | `large`            | `${fileSize:gt(1000000)}`       |
-| `Evaluation Order` | `urgent` and `large` on separate lines |
 
-A FlowFile that is both urgent and large goes only to `urgent`. Move `large` above `urgent` and it goes only to `large`.
+With `urgent` dragged above `large`, a FlowFile that is both urgent and large goes only to `urgent`.
+Drag `large` above `urgent` and it goes only to `large`.
 
-### Advanced UI
+### The order is set only in the Advanced UI
 
 Right-click the processor and choose **Advanced**. The routes appear as a numbered list:
 
@@ -35,8 +36,16 @@ Right-click the processor and choose **Advanced**. The routes appear as a number
 - click a route to edit its name or condition;
 - use **+** to add a route, and a route's menu to delete it.
 
-Every change is saved to the processor right away. The UI maintains the Evaluation Order property for you.
-The processor must be stopped to make changes.
+Every change is saved to the processor right away. The processor must be stopped to make changes.
+
+The order is stored in the processor's annotation data, which the configuration dialog does not show.
+The **Evaluation Order** property displays it, one route per line, so the order is visible without
+opening the Advanced UI, but it is read-only: if it is edited in the configuration dialog, the processor
+becomes invalid until it matches again. The Advanced UI then offers to restore it.
+
+Outside the browser, the order is the processor's `annotationData`, for example
+`{"evaluationOrder": ["urgent", "large"]}`, in the REST API and in flow definitions. Set the
+Evaluation Order property to the same names, one per line, at the same time.
 
 ## Compatibility
 

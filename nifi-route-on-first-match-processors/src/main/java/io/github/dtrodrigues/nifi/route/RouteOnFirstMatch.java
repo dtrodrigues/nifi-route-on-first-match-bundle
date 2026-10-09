@@ -185,6 +185,24 @@ public class RouteOnFirstMatch extends AbstractProcessor {
                     .build());
         }
 
+        // Evaluation Order lists one stripped name per line, so it cannot refer to a name containing a line break
+        // or surrounded by whitespace; such a route would silently fall back to alphabetical order
+        for (final String name : conditionNames) {
+            if (name.contains("\n") || name.contains("\r")) {
+                results.add(new ValidationResult.Builder()
+                        .subject(name)
+                        .valid(false)
+                        .explanation("route names cannot contain line breaks")
+                        .build());
+            } else if (!name.equals(name.strip())) {
+                results.add(new ValidationResult.Builder()
+                        .subject(name)
+                        .valid(false)
+                        .explanation("route names cannot start or end with whitespace")
+                        .build());
+            }
+        }
+
         final Set<String> seen = new HashSet<>();
         for (final String name : parseEvaluationOrder(validationContext.getProperty(EVALUATION_ORDER).getValue())) {
             if (!seen.add(name)) {

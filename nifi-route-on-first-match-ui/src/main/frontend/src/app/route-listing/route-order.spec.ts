@@ -20,6 +20,7 @@ import {
     parseEvaluationOrder,
     reorderUpdates,
     Route,
+    routeNameError,
     saveRouteUpdates,
     toRoutes
 } from './route-order';
@@ -29,7 +30,7 @@ describe('route-order', () => {
     const large: Route = { name: 'large', expression: '${size:gt(100)}' };
 
     it('should parse the evaluation order, ignoring blank lines and whitespace', () => {
-        expect(parseEvaluationOrder(' b \n\n a\r\n')).toEqual(['b', 'a']);
+        expect(parseEvaluationOrder(' b \n\n a\r\nc\rd')).toEqual(['b', 'a', 'c', 'd']);
         expect(parseEvaluationOrder(null)).toEqual([]);
     });
 
@@ -71,5 +72,19 @@ describe('route-order', () => {
             [EVALUATION_ORDER]: 'large'
         });
         expect(deleteRouteUpdates([urgent], 'urgent')).toEqual({ urgent: null, [EVALUATION_ORDER]: null });
+    });
+
+    it('should reject route names that cannot be listed in the evaluation order', () => {
+        const routes = [urgent, large];
+        expect(routeNameError('small', routes, null)).toBeNull();
+        expect(routeNameError(' small ', routes, null)).toBeNull();
+        expect(routeNameError('   ', routes, null)).toEqual('required');
+        expect(routeNameError('very\nlarge', routes, null)).toEqual('lineBreak');
+        expect(routeNameError('very\rlarge', routes, null)).toEqual('lineBreak');
+        expect(routeNameError('unmatched', routes, null)).toEqual('reserved');
+        expect(routeNameError(EVALUATION_ORDER, routes, null)).toEqual('reserved');
+        expect(routeNameError('large', routes, null)).toEqual('duplicate');
+        expect(routeNameError('large', routes, 'large')).toBeNull();
+        expect(routeNameError('large', routes, 'urgent')).toEqual('duplicate');
     });
 });

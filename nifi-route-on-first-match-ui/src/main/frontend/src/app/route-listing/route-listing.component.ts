@@ -29,10 +29,10 @@ import { Observable } from 'rxjs';
 import { ProcessorDetails, RouteOnFirstMatchService } from '../service/route-on-first-match.service';
 import {
     deleteRouteUpdates,
-    EVALUATION_ORDER,
     PropertyUpdates,
     reorderUpdates,
     Route,
+    routeNameError,
     saveRouteUpdates,
     toRoutes,
     UNMATCHED
@@ -217,15 +217,10 @@ export class RouteListing {
     }
 
     private validateName(control: AbstractControl): ValidationErrors | null {
-        const name = (control.value as string).trim();
-        if (name === UNMATCHED || name === EVALUATION_ORDER) {
-            return { reserved: true };
-        }
         const editing = this.editing();
-        if (name !== editing && this.routes().some((route) => route.name === name)) {
-            return { duplicate: true };
-        }
-        return null;
+        const originalName = editing === NEW_ROUTE ? null : editing;
+        const error = routeNameError(control.value as string, this.routes(), originalName);
+        return error ? { [error]: true } : null;
     }
 
     private errorMessage(error: HttpErrorResponse): string {

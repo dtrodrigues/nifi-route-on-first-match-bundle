@@ -102,6 +102,24 @@ class TestRouteOnFirstMatch {
     }
 
     @Test
+    void testInvalidWhenConditionNameContainsLineBreak() {
+        runner.assertValid();
+
+        runner.setProperty("very\nlarge", "${size:gt(1000)}");
+        runner.assertNotValid();
+
+        runner.removeProperty("very\nlarge");
+        runner.setProperty("very\rlarge", "${size:gt(1000)}");
+        runner.assertNotValid();
+    }
+
+    @Test
+    void testInvalidWhenConditionNameHasSurroundingWhitespace() {
+        runner.setProperty(" small", "${size:lt(10)}");
+        runner.assertNotValid();
+    }
+
+    @Test
     void testRelationships() {
         final Set<String> relationshipNames = runner.getProcessor().getRelationships().stream()
                 .map(Relationship::getName)

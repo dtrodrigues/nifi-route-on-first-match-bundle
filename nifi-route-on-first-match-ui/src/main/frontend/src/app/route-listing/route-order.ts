@@ -36,7 +36,7 @@ export function parseEvaluationOrder(value: string | null | undefined): string[]
         return [];
     }
     return value
-        .split(/\r?\n/)
+        .split(/\r\n|\r|\n/)
         .map((line) => line.trim())
         .filter((line) => line.length > 0);
 }
@@ -62,6 +62,29 @@ export function toRoutes(properties: Record<string, string | null>): Route[] {
 
     const remaining = Array.from(routes.values()).sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
     return [...ordered, ...remaining];
+}
+
+export type RouteNameError = 'required' | 'lineBreak' | 'reserved' | 'duplicate';
+
+/**
+ * Checks a route name as entered, before it is trimmed. Names are stored one per line in the Evaluation Order,
+ * so a name containing a line break could not be ordered. Must agree with RouteOnFirstMatch.customValidate.
+ */
+export function routeNameError(input: string, routes: Route[], originalName: string | null): RouteNameError | null {
+    const name = input.trim();
+    if (name.length === 0) {
+        return 'required';
+    }
+    if (/[\r\n]/.test(name)) {
+        return 'lineBreak';
+    }
+    if (name === UNMATCHED || name === EVALUATION_ORDER) {
+        return 'reserved';
+    }
+    if (name !== originalName && routes.some((route) => route.name === name)) {
+        return 'duplicate';
+    }
+    return null;
 }
 
 function evaluationOrder(routes: Route[]): PropertyUpdates {

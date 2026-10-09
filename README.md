@@ -43,7 +43,15 @@ The processor must be stopped to make changes.
 Requires NiFi 2.x (Java 21). The NAR is built against the NiFi version in the root `pom.xml` (currently 2.12.0).
 It does not run on NiFi 1.x, which uses a different Java version, Jetty, and UI.
 
-To target a different NiFi 2.x release, change both the parent version and `nifi.version` in the root `pom.xml`, then rebuild.
+To target a different NiFi 2.x release, change both the parent version and `nifi.version` in the root `pom.xml`, then refresh the
+Advanced UI's copy of the NiFi theme so it matches that release, and rebuild:
+
+```shell
+./update-nifi-theme.sh          # copies the theme from the NiFi release named by nifi.version
+```
+
+The theme lives in `nifi-route-on-first-match-ui/src/main/frontend/src/nifi-shared`, and its `SOURCE` file records
+which NiFi release it came from. Run `./update-nifi-theme.sh --help` for other options.
 
 ## Build
 

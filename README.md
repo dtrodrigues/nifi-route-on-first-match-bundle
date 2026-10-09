@@ -55,7 +55,7 @@ which NiFi release it came from. Run `./update-nifi-theme.sh --help` for other o
 
 ## Build
 
-Requires Java 21 and Maven 3.9+. Maven downloads Node.js into `target/` to build the Advanced UI.
+Requires Java 21 and Maven 3.9.16 or later (enforced by the NiFi parent pom). Maven downloads Node.js into `target/` to build the Advanced UI.
 
 ```shell
 mvn clean install

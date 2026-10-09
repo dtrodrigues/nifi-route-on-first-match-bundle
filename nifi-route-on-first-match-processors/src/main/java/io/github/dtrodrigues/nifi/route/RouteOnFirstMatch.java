@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.dustinrodrigues.nifi.route;
+package io.github.dtrodrigues.nifi.route;
 
 import org.apache.nifi.annotation.behavior.DefaultRunDuration;
 import org.apache.nifi.annotation.behavior.DynamicProperty;

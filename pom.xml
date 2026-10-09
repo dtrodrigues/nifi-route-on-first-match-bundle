@@ -22,12 +22,14 @@
         <version>2.12.0</version>
     </parent>
 
-    <groupId>io.github.dustinrodrigues</groupId>
+    <groupId>io.github.dtrodrigues</groupId>
     <artifactId>nifi-route-on-first-match-bundle</artifactId>
     <version>1.0.0-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>RouteOnFirstMatch for Apache NiFi</name>
     <description>A NiFi processor that routes each FlowFile to the first matching condition, with a drag-and-drop Advanced UI for ordering conditions</description>
+
+    <url>https://github.com/dtrodrigues/nifi-route-on-first-match-bundle</url>
 
     <licenses>
         <license>
@@ -35,6 +37,21 @@
             <url>https://www.apache.org/licenses/LICENSE-2.0</url>
         </license>
     </licenses>
+
+    <developers>
+        <developer>
+            <id>dtrodrigues</id>
+            <name>Dustin Rodrigues</name>
+            <url>https://github.com/dtrodrigues</url>
+        </developer>
+    </developers>
+
+    <scm>
+        <url>https://github.com/dtrodrigues/nifi-route-on-first-match-bundle</url>
+        <connection>scm:git:https://github.com/dtrodrigues/nifi-route-on-first-match-bundle.git</connection>
+        <developerConnection>scm:git:git@github.com:dtrodrigues/nifi-route-on-first-match-bundle.git</developerConnection>
+        <tag>HEAD</tag>
+    </scm>
 
     <properties>
         <nifi.version>2.12.0</nifi.version>

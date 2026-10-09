@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package io.github.dustinrodrigues.nifi.route.ui.api;
+package io.github.dtrodrigues.nifi.route.ui.api;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.ws.rs.core.CacheControl;

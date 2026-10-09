@@ -36,6 +36,22 @@ class TestConfigurationExceptionMapper {
                 + "Stop the processor, then try again.", response.getEntity());
     }
 
+    /** Like NiFi's ValidationException, which has no message and builds its text in getLocalizedMessage() */
+    private static final class ValidationException extends RuntimeException {
+        @Override
+        public String getLocalizedMessage() {
+            return "1 validation error: Cannot modify configuration of RouteOnFirstMatch[id=1] while the Processor is running";
+        }
+    }
+
+    @Test
+    void testNiFiValidationException() {
+        final Response response = mapper.toResponse(new ValidationException());
+        assertEquals(409, response.getStatus());
+        assertEquals("1 validation error: Cannot modify configuration of RouteOnFirstMatch[id=1] while the Processor is running. "
+                + "Stop the processor, then try again.", response.getEntity());
+    }
+
     @Test
     void testStaleRevision() {
         final Response response = mapper.toResponse(new InvalidRevisionException("stale"));

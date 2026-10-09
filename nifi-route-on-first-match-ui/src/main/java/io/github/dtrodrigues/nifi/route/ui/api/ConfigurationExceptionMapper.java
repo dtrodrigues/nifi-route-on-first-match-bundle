@@ -47,11 +47,12 @@ public class ConfigurationExceptionMapper implements ExceptionMapper<Exception> 
         } else if (exception instanceof IllegalStateException || exception.getClass().getSimpleName().equals("ValidationException")) {
             // NiFi refuses configuration changes while the processor is running or waiting to run
             status = Response.Status.CONFLICT;
-            final String reason = exception.getMessage();
+            // NiFi's ValidationException only provides its text through getLocalizedMessage()
+            final String reason = exception.getLocalizedMessage();
             message = reason != null && reason.contains("running") ? reason + ". Stop the processor, then try again." : reason;
         } else {
             status = Response.Status.INTERNAL_SERVER_ERROR;
-            message = exception.getMessage() != null ? exception.getMessage() : exception.getClass().getSimpleName();
+            message = exception.getLocalizedMessage() != null ? exception.getLocalizedMessage() : exception.getClass().getSimpleName();
         }
 
         return Response.status(status).type(MediaType.TEXT_PLAIN_TYPE).entity(message).build();

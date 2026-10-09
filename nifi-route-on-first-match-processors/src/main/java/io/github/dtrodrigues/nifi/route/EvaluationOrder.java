@@ -25,7 +25,7 @@ import java.util.List;
 /**
  * Reads the route order that the Advanced UI stores in the processor's annotation data, in the form
  * {@code {"evaluationOrder": ["urgent", "large"]}}. Annotation data is not shown in the processor's
- * configuration dialog, so the order can only be changed through the Advanced UI.
+ * configuration dialog, so the order can only be seen and changed in the Advanced UI.
  */
 final class EvaluationOrder {
 

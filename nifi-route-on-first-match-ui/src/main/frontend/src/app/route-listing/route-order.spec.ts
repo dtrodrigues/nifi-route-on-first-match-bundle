@@ -16,11 +16,8 @@
 
 import {
     deleteRouteUpdate,
-    isDisplayedOrderChanged,
-    EVALUATION_ORDER,
     parseAnnotationData,
     reorderUpdate,
-    routesRemovedFromDisplayedOrder,
     Route,
     routeNameError,
     saveRouteUpdate,
@@ -44,7 +41,6 @@ describe('route-order', () => {
     it('should order saved routes first, then the rest alphabetically', () => {
         const routes = toRoutes(
             {
-                [EVALUATION_ORDER]: 'ignored\nbecause it only displays the order',
                 a: 'A',
                 b: 'B',
                 c: 'C',
@@ -56,17 +52,17 @@ describe('route-order', () => {
         expect(routes[0].expression).toEqual('C');
     });
 
-    it('should save the new order when reordering, and display it in the property', () => {
+    it('should save the new order when reordering', () => {
         expect(reorderUpdate([large, urgent])).toEqual({
             annotationData: order('large', 'urgent'),
-            properties: { [EVALUATION_ORDER]: 'large\nurgent' }
+            properties: {}
         });
     });
 
     it('should append a new route', () => {
         expect(saveRouteUpdate([urgent], large, null)).toEqual({
             annotationData: order('urgent', 'large'),
-            properties: { large: large.expression, [EVALUATION_ORDER]: 'urgent\nlarge' }
+            properties: { large: large.expression }
         });
     });
 
@@ -74,50 +70,22 @@ describe('route-order', () => {
         const renamed: Route = { name: 'critical', expression: urgent.expression };
         expect(saveRouteUpdate([urgent, large], renamed, 'urgent')).toEqual({
             annotationData: order('critical', 'large'),
-            properties: { urgent: null, critical: urgent.expression, [EVALUATION_ORDER]: 'critical\nlarge' }
+            properties: { urgent: null, critical: urgent.expression }
         });
     });
 
-    it('should delete a route and clear the displayed order when none remain', () => {
+    it('should delete a route', () => {
         expect(deleteRouteUpdate([urgent, large], 'urgent')).toEqual({
             annotationData: order('large'),
-            properties: { urgent: null, [EVALUATION_ORDER]: 'large' }
+            properties: { urgent: null }
         });
         expect(deleteRouteUpdate([urgent], 'urgent')).toEqual({
             annotationData: order(),
-            properties: { urgent: null, [EVALUATION_ORDER]: null }
+            properties: { urgent: null }
         });
     });
-    it('should detect when the displayed order was edited outside the Advanced UI', () => {
-        expect(isDisplayedOrderChanged({ [EVALUATION_ORDER]: ' urgent \n\nlarge' }, order('urgent', 'large'))).toBe(
-            false
-        );
-        expect(isDisplayedOrderChanged({}, null)).toBe(false);
-        expect(isDisplayedOrderChanged({ [EVALUATION_ORDER]: 'large\nurgent' }, order('urgent', 'large'))).toBe(true);
-        expect(isDisplayedOrderChanged({}, order('urgent'))).toBe(true);
-        expect(isDisplayedOrderChanged({ [EVALUATION_ORDER]: 'urgent' }, null)).toBe(true);
-    });
 
-    it('should name routes removed from the displayed order that still exist', () => {
-        const properties = { urgent: urgent.expression, large: large.expression };
-        expect(
-            routesRemovedFromDisplayedOrder({ ...properties, [EVALUATION_ORDER]: 'urgent' }, order('urgent', 'large'))
-        ).toEqual(['large']);
-        expect(
-            routesRemovedFromDisplayedOrder(
-                { ...properties, [EVALUATION_ORDER]: 'large\nurgent' },
-                order('urgent', 'large')
-            )
-        ).toEqual([]);
-        expect(
-            routesRemovedFromDisplayedOrder(
-                { urgent: urgent.expression, [EVALUATION_ORDER]: 'urgent' },
-                order('urgent', 'gone')
-            )
-        ).toEqual([]);
-    });
-
-    it('should reject route names that cannot be listed in the evaluation order', () => {
+    it('should reject route names that cannot be used as relationships', () => {
         const routes = [urgent, large];
         expect(routeNameError('small', routes, null)).toBeNull();
         expect(routeNameError(' small ', routes, null)).toBeNull();
@@ -125,7 +93,6 @@ describe('route-order', () => {
         expect(routeNameError('very\nlarge', routes, null)).toEqual('lineBreak');
         expect(routeNameError('very\rlarge', routes, null)).toEqual('lineBreak');
         expect(routeNameError('unmatched', routes, null)).toEqual('reserved');
-        expect(routeNameError(EVALUATION_ORDER, routes, null)).toEqual('reserved');
         expect(routeNameError('large', routes, null)).toEqual('duplicate');
         expect(routeNameError('large', routes, 'large')).toBeNull();
         expect(routeNameError('large', routes, 'urgent')).toEqual('duplicate');

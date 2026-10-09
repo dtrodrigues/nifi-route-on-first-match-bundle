@@ -15,12 +15,9 @@
  */
 
 /**
- * Name of the processor property that displays the evaluation order, one route per line. It cannot be used to change
- * the order: the processor is invalid unless it matches the annotation data. Must match RouteOnFirstMatch.EVALUATION_ORDER.
+ * Field of the annotation data that holds the evaluation order. Annotation data is not shown in the configuration
+ * dialog, so the order can only be seen and changed here. Must match EvaluationOrder.FIELD.
  */
-export const EVALUATION_ORDER = 'Evaluation Order';
-
-/** Field of the annotation data that holds the evaluation order. Must match EvaluationOrder.FIELD. */
 const ORDER_FIELD = 'evaluationOrder';
 
 /** Relationship that receives FlowFiles matching no route. Must match RouteOnFirstMatch.REL_NO_MATCH. */
@@ -57,41 +54,6 @@ export function parseAnnotationData(annotationData: string | null | undefined): 
 }
 
 /**
- * Whether the Evaluation Order property no longer displays the saved order, because it was edited in the configuration
- * dialog. Compares the way the processor does, ignoring blank lines and surrounding whitespace.
- */
-export function isDisplayedOrderChanged(
-    properties: Record<string, string | null>,
-    annotationData: string | null | undefined
-): boolean {
-    const displayed = parseDisplayedOrder(properties);
-    const saved = parseAnnotationData(annotationData);
-    return displayed.length !== saved.length || displayed.some((name, i) => name !== saved[i]);
-}
-
-/**
- * Routes that were removed from the Evaluation Order property but still exist, because removing a name there does not
- * delete the route. Must agree with RouteOnFirstMatch.describeDisplayedOrderEdit.
- */
-export function routesRemovedFromDisplayedOrder(
-    properties: Record<string, string | null>,
-    annotationData: string | null | undefined
-): string[] {
-    const displayed = parseDisplayedOrder(properties);
-    return parseAnnotationData(annotationData).filter(
-        (name) => !displayed.includes(name) && name !== EVALUATION_ORDER && properties[name] != null
-    );
-}
-
-/** Reads the Evaluation Order property the way the processor does, ignoring blank lines and surrounding whitespace. */
-function parseDisplayedOrder(properties: Record<string, string | null>): string[] {
-    return (properties[EVALUATION_ORDER] ?? '')
-        .split(/\r\n|\r|\n/)
-        .map((line) => line.trim())
-        .filter((line) => line.length > 0);
-}
-
-/**
  * Builds the routes in evaluation order the same way the processor does: routes in the saved order first,
  * then any remaining routes, such as those added in the configuration dialog, alphabetically.
  */
@@ -101,7 +63,7 @@ export function toRoutes(
 ): Route[] {
     const routes = new Map<string, Route>();
     Object.entries(properties)
-        .filter(([name, expression]) => name !== EVALUATION_ORDER && expression !== null)
+        .filter(([, expression]) => expression !== null)
         .forEach(([name, expression]) => routes.set(name, { name, expression: expression as string }));
 
     const ordered: Route[] = [];
@@ -120,8 +82,8 @@ export function toRoutes(
 export type RouteNameError = 'required' | 'lineBreak' | 'reserved' | 'duplicate';
 
 /**
- * Checks a route name as entered, before it is trimmed. Names are stored one per line in the Evaluation Order,
- * so a name containing a line break could not be ordered. Must agree with RouteOnFirstMatch.customValidate.
+ * Checks a route name as entered, before it is trimmed. Route names become relationship names, so they cannot
+ * contain line breaks. Must agree with RouteOnFirstMatch.customValidate.
  */
 export function routeNameError(input: string, routes: Route[], originalName: string | null): RouteNameError | null {
     const name = input.trim();
@@ -131,7 +93,7 @@ export function routeNameError(input: string, routes: Route[], originalName: str
     if (/[\r\n]/.test(name)) {
         return 'lineBreak';
     }
-    if (name === UNMATCHED || name === EVALUATION_ORDER) {
+    if (name === UNMATCHED) {
         return 'reserved';
     }
     if (name !== originalName && routes.some((route) => route.name === name)) {
@@ -140,12 +102,11 @@ export function routeNameError(input: string, routes: Route[], originalName: str
     return null;
 }
 
-/** Saves the order of the given routes, and displays it in the Evaluation Order property. */
+/** Saves the order of the given routes along with any route property changes. */
 function withOrder(routes: Route[], properties: PropertyUpdates = {}): ConfigurationUpdate {
-    const names = routes.map((route) => route.name);
     return {
-        annotationData: JSON.stringify({ [ORDER_FIELD]: names }),
-        properties: { ...properties, [EVALUATION_ORDER]: names.length > 0 ? names.join('\n') : null }
+        annotationData: JSON.stringify({ [ORDER_FIELD]: routes.map((route) => route.name) }),
+        properties
     };
 }
 

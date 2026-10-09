@@ -29,8 +29,6 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class TestRouteOnFirstMatch {
 
@@ -44,12 +42,11 @@ class TestRouteOnFirstMatch {
     }
 
     /**
-     * Sets the order the way the Advanced UI does: in the annotation data, and displayed in the Evaluation Order property
+     * Sets the order the way the Advanced UI does, in the annotation data
      */
     private void setOrder(final String... names) {
         final String quoted = String.join(", ", Arrays.stream(names).map("\"%s\""::formatted).toList());
         runner.setAnnotationData("{\"evaluationOrder\": [%s]}".formatted(quoted));
-        runner.setProperty(RouteOnFirstMatch.EVALUATION_ORDER, String.join("\n", names));
     }
 
     @Test
@@ -114,44 +111,6 @@ class TestRouteOnFirstMatch {
         runner.run();
 
         runner.assertAllFlowFilesTransferred("large", 1);
-    }
-
-    @Test
-    void testInvalidWhenDisplayedOrderIsEditedOutsideAdvancedUi() {
-        setOrder("urgent", "large");
-        runner.assertValid();
-
-        runner.setProperty(RouteOnFirstMatch.EVALUATION_ORDER, "large\nurgent");
-        runner.assertNotValid();
-
-        runner.removeProperty(RouteOnFirstMatch.EVALUATION_ORDER);
-        runner.assertNotValid();
-
-        // Blank lines and surrounding whitespace do not change the order
-        runner.setProperty(RouteOnFirstMatch.EVALUATION_ORDER, " urgent \n\nlarge\n");
-        runner.assertValid();
-    }
-
-    @Test
-    void testDescribeDisplayedOrderEditNamesRemovedRoutes() {
-        final Set<String> routes = Set.of("urgent", "large");
-
-        final String removed = RouteOnFirstMatch.describeDisplayedOrderEdit(List.of("urgent"), List.of("urgent", "large"), routes);
-        assertTrue(removed.contains("Removing 'large' from it does not delete the route"), removed);
-        assertTrue(removed.endsWith("set it back to 'urgent', 'large'"), removed);
-
-        final String reordered = RouteOnFirstMatch.describeDisplayedOrderEdit(List.of("large", "urgent"), List.of("urgent", "large"), routes);
-        assertFalse(reordered.contains("Removing"), reordered);
-
-        // A route already deleted is not reported as still existing
-        final String deleted = RouteOnFirstMatch.describeDisplayedOrderEdit(List.of("urgent"), List.of("urgent", "removed"), routes);
-        assertFalse(deleted.contains("Removing"), deleted);
-    }
-
-    @Test
-    void testInvalidWhenOrderIsTypedWithoutAdvancedUi() {
-        runner.setProperty(RouteOnFirstMatch.EVALUATION_ORDER, "large\nurgent");
-        runner.assertNotValid();
     }
 
     @Test

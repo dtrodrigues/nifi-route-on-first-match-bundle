@@ -30,8 +30,6 @@ import { ProcessorDetails, RouteOnFirstMatchService } from '../service/route-on-
 import {
     ConfigurationUpdate,
     deleteRouteUpdate,
-    isDisplayedOrderChanged,
-    routesRemovedFromDisplayedOrder,
     reorderUpdate,
     Route,
     routeNameError,
@@ -83,8 +81,6 @@ export class RouteListing {
     saveError = signal<string | null>(null);
     processorName = signal('');
     validationErrors = signal<string[]>([]);
-    displayedOrderChanged = signal(false);
-    removedFromDisplayedOrder = signal<string[]>([]);
     routes = signal<Route[]>([]);
     editing = signal<string | null>(null);
 
@@ -123,11 +119,6 @@ export class RouteListing {
         moveItemInArray(reordered, event.previousIndex, event.currentIndex);
         this.routes.set(reordered);
         this.save(reorderUpdate(reordered));
-    }
-
-    /** Saves the order shown here again, which also puts the Evaluation Order property back. */
-    restoreDisplayedOrder(): void {
-        this.save(reorderUpdate(this.routes()));
     }
 
     startEdit(route: Route): void {
@@ -214,10 +205,6 @@ export class RouteListing {
         }
         this.processorName.set(details.name);
         this.routes.set(toRoutes(details.properties ?? {}, details.annotationData));
-        this.displayedOrderChanged.set(isDisplayedOrderChanged(details.properties ?? {}, details.annotationData));
-        this.removedFromDisplayedOrder.set(
-            routesRemovedFromDisplayedOrder(details.properties ?? {}, details.annotationData)
-        );
         this.validationErrors.set(details.validationErrors ?? []);
     }
 

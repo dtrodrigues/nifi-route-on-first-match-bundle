@@ -1,0 +1,179 @@
+<!--
+  Copyright 2026 Dustin Rodrigues
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+
+<div class="route-on-first-match flex flex-col h-screen">
+    <div class="p-5 flex-1 flex flex-col gap-y-4">
+        <div>
+            <h3 class="primary-color">Advanced</h3>
+            <div class="unset">{{ processorName() }}</div>
+        </div>
+        @if (loading()) {
+            <div class="h-full flex items-center justify-center">
+                <mat-spinner color="primary"></mat-spinner>
+            </div>
+        } @else if (loadError(); as loadError) {
+            <div class="flex flex-1 justify-center items-center">
+                <i class="fa fa-warning caution-color mr-2"></i>{{ loadError }}
+            </div>
+        } @else {
+            <div class="flex justify-between items-center">
+                <div>
+                    Routes are evaluated from top to bottom. Each FlowFile is sent to the first route whose expression
+                    returns true.
+                    @if (editable) {
+                        Drag a route by its handle to change its priority.
+                    } @else {
+                        The processor must be stopped to change routes.
+                    }
+                </div>
+                <button
+                    mat-icon-button
+                    class="primary-icon-button"
+                    title="Add route"
+                    [disabled]="!editable || saving() || editing() !== null"
+                    (click)="startNew()">
+                    <i class="fa fa-plus"></i>
+                </button>
+            </div>
+            @if (saveError(); as saveError) {
+                <div class="flex items-center"><i class="fa fa-warning caution-color mr-2"></i>{{ saveError }}</div>
+            }
+            @for (validationError of validationErrors(); track validationError) {
+                <div class="flex items-center">
+                    <i class="fa fa-warning caution-color mr-2"></i>{{ validationError }}
+                </div>
+            }
+            @if (routes().length === 0 && editing() !== NEW_ROUTE) {
+                <div class="flex flex-1 justify-center items-center gap-x-4">
+                    @if (editable) {
+                        <div>No routes configured for this Processor. Get started by defining your first.</div>
+                        <button mat-flat-button (click)="startNew()">Create Route</button>
+                    } @else {
+                        <div>No routes configured for this Processor.</div>
+                    }
+                </div>
+            } @else {
+                <div class="route-listing flex flex-col gap-y-2">
+                    <mat-accordion
+                        cdkDropList
+                        [cdkDropListDisabled]="reorderDisabled()"
+                        [cdkDropListData]="routes()"
+                        (cdkDropListDropped)="drop($event)">
+                        @for (route of routes(); track route.name; let i = $index) {
+                            <mat-expansion-panel
+                                cdkDrag
+                                cdkDragPreviewContainer="parent"
+                                [expanded]="editing() === route.name"
+                                (opened)="startEdit(route)"
+                                (closed)="panelClosed(route.name)">
+                                <mat-expansion-panel-header [collapsedHeight]="'42px'" [expandedHeight]="'42px'">
+                                    <mat-panel-title>
+                                        <div class="flex items-center">
+                                            <span
+                                                class="grip -mt-0.5 mr-3"
+                                                [class.cursor-grab]="!reorderDisabled()"
+                                                cdkDragHandle
+                                                (click)="$event.stopPropagation()"></span>
+                                            <span class="route-index unset mr-2">{{ i + 1 }}.</span>
+                                            <span class="truncate">{{ route.name }}</span>
+                                        </div>
+                                    </mat-panel-title>
+                                    <mat-panel-description>
+                                        <div class="flex justify-between items-center w-full">
+                                            <code class="flex-1 truncate">{{ route.expression }}</code>
+                                            @if (editable) {
+                                                <button
+                                                    mat-icon-button
+                                                    type="button"
+                                                    [matMenuTriggerFor]="actionMenu"
+                                                    [disabled]="saving()"
+                                                    (click)="$event.stopPropagation()"
+                                                    (keydown)="$event.stopPropagation()"
+                                                    class="flex items-center justify-center icon global-menu">
+                                                    <i class="fa fa-ellipsis-v"></i>
+                                                </button>
+                                                <mat-menu #actionMenu="matMenu" xPosition="before">
+                                                    <button mat-menu-item title="Delete" (click)="deleteRoute(route)">
+                                                        <i class="fa fa-trash primary-color mr-2"></i>
+                                                        Delete
+                                                    </button>
+                                                </mat-menu>
+                                            }
+                                        </div>
+                                    </mat-panel-description>
+                                </mat-expansion-panel-header>
+                                @if (editing() === route.name) {
+                                    <ng-container *ngTemplateOutlet="routeEditor"></ng-container>
+                                }
+                            </mat-expansion-panel>
+                        }
+                        @if (editing() === NEW_ROUTE) {
+                            <mat-expansion-panel expanded="true" disabled="true">
+                                <mat-expansion-panel-header>
+                                    <mat-panel-title class="items-center">
+                                        <span class="unset">New route</span>
+                                    </mat-panel-title>
+                                </mat-expansion-panel-header>
+                                <ng-container *ngTemplateOutlet="routeEditor"></ng-container>
+                            </mat-expansion-panel>
+                        }
+                    </mat-accordion>
+                    <div class="unmatched-route flex items-center px-6">
+                        <span class="unset">Otherwise, FlowFiles are routed to</span>
+                        <code class="ml-1">{{ UNMATCHED }}</code>
+                    </div>
+                </div>
+            }
+        }
+    </div>
+</div>
+
+<ng-template #routeEditor>
+    <form [formGroup]="routeForm" class="flex flex-col gap-y-2 pt-2" (ngSubmit)="saveRoute()">
+        <mat-form-field>
+            <mat-label>Name</mat-label>
+            <input matInput type="text" formControlName="name" />
+            <mat-hint>Becomes the name of the relationship</mat-hint>
+            @if (routeForm.controls.name.hasError('duplicate')) {
+                <mat-error>A route with this name already exists</mat-error>
+            } @else if (routeForm.controls.name.hasError('reserved')) {
+                <mat-error>This name is reserved</mat-error>
+            } @else if (routeForm.controls.name.hasError('required')) {
+                <mat-error>Name is required</mat-error>
+            }
+        </mat-form-field>
+        <mat-form-field>
+            <mat-label>Expression</mat-label>
+            <textarea matInput class="expression" rows="3" formControlName="expression"></textarea>
+            <mat-hint>{{ expressionHint }}</mat-hint>
+            @if (routeForm.controls.expression.hasError('required')) {
+                <mat-error>Expression is required</mat-error>
+            }
+        </mat-form-field>
+        @if (editable) {
+            <div class="flex justify-end gap-x-2">
+                <button mat-button type="button" (click)="cancelEdit()">Cancel</button>
+                <button mat-flat-button type="submit" [disabled]="routeForm.invalid || routeForm.pristine || saving()">
+                    @if (saving()) {
+                        <mat-spinner diameter="20" class="inline-block"></mat-spinner>
+                    } @else {
+                        Apply
+                    }
+                </button>
+            </div>
+        }
+    </form>
+</ng-template>

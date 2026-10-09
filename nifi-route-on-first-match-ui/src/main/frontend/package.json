@@ -1,0 +1,43 @@
+{
+    "name": "route-on-first-match-ui",
+    "version": "0.0.0",
+    "private": true,
+    "license": "Apache-2.0",
+    "engines": {
+        "node": ">=24.0.0"
+    },
+    "scripts": {
+        "start": "ng serve",
+        "build": "ng build",
+        "watch": "ng build --watch --configuration development",
+        "test": "ng test --watch=false",
+        "prettier": "prettier --check .",
+        "prettier-format": "prettier --write ."
+    },
+    "dependencies": {
+        "@angular/animations": "21.2.24",
+        "@angular/cdk": "21.2.14",
+        "@angular/common": "21.2.24",
+        "@angular/compiler": "21.2.24",
+        "@angular/core": "21.2.24",
+        "@angular/forms": "21.2.24",
+        "@angular/material": "21.2.14",
+        "@angular/platform-browser": "21.2.24",
+        "@fontsource/inter": "^5.1.0",
+        "font-awesome": "4.7.0",
+        "rxjs": "~7.8.2",
+        "tslib": "^2.6.2",
+        "zone.js": "0.16.1"
+    },
+    "devDependencies": {
+        "@angular/build": "21.2.24",
+        "@angular/cli": "21.2.24",
+        "@angular/compiler-cli": "21.2.24",
+        "@tailwindcss/postcss": "^4.2.2",
+        "jsdom": "^27.0.0",
+        "prettier": "~3.8.3",
+        "tailwindcss": "^4.2.2",
+        "typescript": "5.9.3",
+        "vitest": "^4.1.11"
+    }
+}

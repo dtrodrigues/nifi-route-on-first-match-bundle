@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <!-- The parent version is the NiFi release built against; keep it equal to nifi.version below -->
+    <parent>
+        <groupId>org.apache.nifi</groupId>
+        <artifactId>nifi-extension-bundles</artifactId>
+        <version>2.12.0</version>
+    </parent>
+
+    <groupId>io.github.dustinrodrigues</groupId>
+    <artifactId>nifi-route-on-first-match-bundle</artifactId>
+    <version>1.0.0-SNAPSHOT</version>
+    <packaging>pom</packaging>
+    <name>RouteOnFirstMatch for Apache NiFi</name>
+    <description>A NiFi processor that routes each FlowFile to the first matching condition, with a drag-and-drop Advanced UI for ordering conditions</description>
+
+    <licenses>
+        <license>
+            <name>Apache License, Version 2.0</name>
+            <url>https://www.apache.org/licenses/LICENSE-2.0</url>
+        </license>
+    </licenses>
+
+    <properties>
+        <nifi.version>2.12.0</nifi.version>
+        <!-- Fixed timestamp for reproducible builds; the NiFi parent otherwise supplies its own release date -->
+        <project.build.outputTimestamp>2026-10-09T00:00:00Z</project.build.outputTimestamp>
+    </properties>
+
+    <modules>
+        <module>nifi-route-on-first-match-processors</module>
+        <module>nifi-route-on-first-match-ui</module>
+        <module>nifi-route-on-first-match-nar</module>
+    </modules>
+
+    <build>
+        <plugins>
+            <!-- The NiFi parent allows SNAPSHOT dependencies only on NiFi itself; allow this project's own modules too -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-enforcer-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>enforce-maven-version</id>
+                        <configuration>
+                            <rules>
+                                <requireReleaseDeps>
+                                    <excludes combine.children="append">
+                                        <exclude>${project.groupId}:*</exclude>
+                                    </excludes>
+                                </requireReleaseDeps>
+                            </rules>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>

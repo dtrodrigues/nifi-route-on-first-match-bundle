@@ -1,0 +1,11 @@
+RouteOnFirstMatch for Apache NiFi
+Copyright 2026 Dustin Rodrigues
+
+This product includes software developed at
+The Apache Software Foundation (http://www.apache.org/).
+
+Portions of this product are derived from Apache NiFi (https://nifi.apache.org/),
+Copyright 2014-2026 The Apache Software Foundation, licensed under the Apache License, Version 2.0:
+  - the Advanced UI REST resources, adapted from the Jolt Transform JSON UI
+  - the Angular project scaffolding of the Advanced UI
+  - the NiFi theme in nifi-route-on-first-match-ui/src/main/frontend/src/nifi-shared

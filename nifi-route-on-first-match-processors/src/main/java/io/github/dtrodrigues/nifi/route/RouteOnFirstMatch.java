@@ -218,14 +218,13 @@ public class RouteOnFirstMatch extends AbstractProcessor {
 
         // The property only displays the order kept in the annotation data, so reject any edit made to it outside the Advanced UI
         final String displayedOrder = validationContext.getProperty(EVALUATION_ORDER).getValue();
-        if (!parseDisplayedOrder(displayedOrder).equals(evaluationOrder)) {
-            final String expected = evaluationOrder.isEmpty() ? "remove its value"
-                    : "set it back to " + String.join(", ", evaluationOrder.stream().map("'%s'"::formatted).toList());
+        final List<String> displayed = parseDisplayedOrder(displayedOrder);
+        if (!displayed.equals(evaluationOrder)) {
             results.add(new ValidationResult.Builder()
                     .subject(EVALUATION_ORDER.getDisplayName())
                     .input(displayedOrder)
                     .valid(false)
-                    .explanation("the order can only be changed in the Advanced UI; reorder the routes there, or " + expected)
+                    .explanation(describeDisplayedOrderEdit(displayed, evaluationOrder, conditionNames))
                     .build());
         }
 
@@ -293,6 +292,27 @@ public class RouteOnFirstMatch extends AbstractProcessor {
             ordered.add(name);
         }
         return List.copyOf(ordered);
+    }
+
+    /**
+     * Explains an edit to the Evaluation Order property. Removing a route from it is the likeliest edit to be mistaken
+     * for deleting the route, so routes that were removed but still exist are named.
+     */
+    static String describeDisplayedOrderEdit(final List<String> displayed, final List<String> evaluationOrder, final Set<String> conditionNames) {
+        final StringBuilder explanation = new StringBuilder("it is read-only and only displays the order set in the Advanced UI, which is still the order in use");
+
+        final List<String> removedRoutes = evaluationOrder.stream()
+                .filter(name -> !displayed.contains(name) && conditionNames.contains(name))
+                .map("'%s'"::formatted)
+                .toList();
+        if (!removedRoutes.isEmpty()) {
+            explanation.append(". Removing %s from it does not delete %s: delete the route in the Advanced UI or remove its property"
+                    .formatted(String.join(", ", removedRoutes), removedRoutes.size() == 1 ? "the route" : "those routes"));
+        }
+
+        final String expected = evaluationOrder.isEmpty() ? "remove its value"
+                : "set it back to " + String.join(", ", evaluationOrder.stream().map("'%s'"::formatted).toList());
+        return explanation.append(". To make the processor valid, click Restore in the Advanced UI, or ").append(expected).toString();
     }
 
     private static List<String> parseDisplayedOrder(final String displayedOrder) {

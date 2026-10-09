@@ -20,6 +20,7 @@ import {
     EVALUATION_ORDER,
     parseAnnotationData,
     reorderUpdate,
+    routesRemovedFromDisplayedOrder,
     Route,
     routeNameError,
     saveRouteUpdate,
@@ -95,6 +96,25 @@ describe('route-order', () => {
         expect(isDisplayedOrderChanged({ [EVALUATION_ORDER]: 'large\nurgent' }, order('urgent', 'large'))).toBe(true);
         expect(isDisplayedOrderChanged({}, order('urgent'))).toBe(true);
         expect(isDisplayedOrderChanged({ [EVALUATION_ORDER]: 'urgent' }, null)).toBe(true);
+    });
+
+    it('should name routes removed from the displayed order that still exist', () => {
+        const properties = { urgent: urgent.expression, large: large.expression };
+        expect(
+            routesRemovedFromDisplayedOrder({ ...properties, [EVALUATION_ORDER]: 'urgent' }, order('urgent', 'large'))
+        ).toEqual(['large']);
+        expect(
+            routesRemovedFromDisplayedOrder(
+                { ...properties, [EVALUATION_ORDER]: 'large\nurgent' },
+                order('urgent', 'large')
+            )
+        ).toEqual([]);
+        expect(
+            routesRemovedFromDisplayedOrder(
+                { urgent: urgent.expression, [EVALUATION_ORDER]: 'urgent' },
+                order('urgent', 'gone')
+            )
+        ).toEqual([]);
     });
 
     it('should reject route names that cannot be listed in the evaluation order', () => {

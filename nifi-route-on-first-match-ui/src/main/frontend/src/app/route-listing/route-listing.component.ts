@@ -31,6 +31,7 @@ import {
     ConfigurationUpdate,
     deleteRouteUpdate,
     isDisplayedOrderChanged,
+    routesRemovedFromDisplayedOrder,
     reorderUpdate,
     Route,
     routeNameError,
@@ -83,6 +84,7 @@ export class RouteListing {
     processorName = signal('');
     validationErrors = signal<string[]>([]);
     displayedOrderChanged = signal(false);
+    removedFromDisplayedOrder = signal<string[]>([]);
     routes = signal<Route[]>([]);
     editing = signal<string | null>(null);
 
@@ -213,6 +215,9 @@ export class RouteListing {
         this.processorName.set(details.name);
         this.routes.set(toRoutes(details.properties ?? {}, details.annotationData));
         this.displayedOrderChanged.set(isDisplayedOrderChanged(details.properties ?? {}, details.annotationData));
+        this.removedFromDisplayedOrder.set(
+            routesRemovedFromDisplayedOrder(details.properties ?? {}, details.annotationData)
+        );
         this.validationErrors.set(details.validationErrors ?? []);
     }
 

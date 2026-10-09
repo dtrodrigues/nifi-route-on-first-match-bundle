@@ -55,8 +55,16 @@
                 <div class="flex items-center gap-x-2">
                     <i class="fa fa-warning caution-color"></i>
                     <span
-                        >The Evaluation Order property was edited outside this window, so the processor is invalid. The
-                        order below is still the one in use.</span
+                        >The Evaluation Order property was edited outside this window, so the processor is invalid. That
+                        property is read-only: the order below is still the one in use.
+                        @if (removedFromDisplayedOrder().length > 0) {
+                            Removing
+                            @for (name of removedFromDisplayedOrder(); track name; let last = $last) {
+                                '{{ name }}'{{ last ? '' : ', ' }}
+                            }
+                            from it did not delete the route; delete it here instead.
+                        }
+                        Restore the property to make the processor valid.</span
                     >
                     <button mat-stroked-button [disabled]="saving()" (click)="restoreDisplayedOrder()">Restore</button>
                 </div>

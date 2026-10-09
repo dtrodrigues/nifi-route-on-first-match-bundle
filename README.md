@@ -41,7 +41,8 @@ Every change is saved to the processor right away. The processor must be stopped
 The order is stored in the processor's annotation data, which the configuration dialog does not show.
 The **Evaluation Order** property displays it, one route per line, so the order is visible without
 opening the Advanced UI, but it is read-only: if it is edited in the configuration dialog, the processor
-becomes invalid until it matches again. The Advanced UI then offers to restore it.
+becomes invalid until it matches again. The Advanced UI then offers to restore it. Removing a name from
+the property does not delete that route; delete it in the Advanced UI or remove its property instead.
 
 Outside the browser, the order is the processor's `annotationData`, for example
 `{"evaluationOrder": ["urgent", "large"]}`, in the REST API and in flow definitions. Set the

@@ -64,12 +64,31 @@ export function isDisplayedOrderChanged(
     properties: Record<string, string | null>,
     annotationData: string | null | undefined
 ): boolean {
-    const displayed = (properties[EVALUATION_ORDER] ?? '')
+    const displayed = parseDisplayedOrder(properties);
+    const saved = parseAnnotationData(annotationData);
+    return displayed.length !== saved.length || displayed.some((name, i) => name !== saved[i]);
+}
+
+/**
+ * Routes that were removed from the Evaluation Order property but still exist, because removing a name there does not
+ * delete the route. Must agree with RouteOnFirstMatch.describeDisplayedOrderEdit.
+ */
+export function routesRemovedFromDisplayedOrder(
+    properties: Record<string, string | null>,
+    annotationData: string | null | undefined
+): string[] {
+    const displayed = parseDisplayedOrder(properties);
+    return parseAnnotationData(annotationData).filter(
+        (name) => !displayed.includes(name) && name !== EVALUATION_ORDER && properties[name] != null
+    );
+}
+
+/** Reads the Evaluation Order property the way the processor does, ignoring blank lines and surrounding whitespace. */
+function parseDisplayedOrder(properties: Record<string, string | null>): string[] {
+    return (properties[EVALUATION_ORDER] ?? '')
         .split(/\r\n|\r|\n/)
         .map((line) => line.trim())
         .filter((line) => line.length > 0);
-    const saved = parseAnnotationData(annotationData);
-    return displayed.length !== saved.length || displayed.some((name, i) => name !== saved[i]);
 }
 
 /**

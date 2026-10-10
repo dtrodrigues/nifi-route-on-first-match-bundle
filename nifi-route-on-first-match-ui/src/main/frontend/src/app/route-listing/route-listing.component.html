@@ -51,12 +51,16 @@
             @if (saveError(); as saveError) {
                 <div class="flex items-center"><i class="fa fa-warning caution-color mr-2"></i>{{ saveError }}</div>
             }
-            @if (unplaced().length > 0) {
+            @if (orderUnreadable() || unplaced().length > 0) {
                 <div class="flex items-center gap-x-2">
                     <i class="fa fa-warning caution-color"></i>
                     <div class="flex-1">
-                        Not yet placed in the order: {{ unplaced().join(', ') }}. Drag them into place, or accept the
-                        order shown.
+                        @if (orderUnreadable()) {
+                            The saved order cannot be read. Accept the order shown to replace it.
+                        } @else {
+                            Not yet placed in the order: {{ unplaced().join(', ') }}. Drag them into place, or accept
+                            the order shown.
+                        }
                     </div>
                     @if (editable) {
                         <button mat-stroked-button [disabled]="saving() || editing() !== null" (click)="acceptOrder()">

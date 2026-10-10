@@ -30,6 +30,7 @@ import { ProcessorDetails, RouteOnFirstMatchService } from '../service/route-on-
 import {
     ConfigurationUpdate,
     deleteRouteUpdate,
+    isOrderUnreadable,
     reorderUpdate,
     Route,
     routeNameError,
@@ -84,6 +85,7 @@ export class RouteListing {
     validationErrors = signal<string[]>([]);
     routes = signal<Route[]>([]);
     unplaced = signal<string[]>([]);
+    orderUnreadable = signal(false);
     editing = signal<string | null>(null);
 
     reorderDisabled = computed(() => !this.editable || this.saving() || this.editing() !== null);
@@ -123,7 +125,7 @@ export class RouteListing {
         this.save(reorderUpdate(reordered));
     }
 
-    /** Places any unplaced routes where they are shown, at the end. */
+    /** Saves the order as shown, which places any unplaced routes at the end and replaces an unreadable order. */
     acceptOrder(): void {
         this.save(reorderUpdate(this.routes()));
     }
@@ -213,6 +215,7 @@ export class RouteListing {
         this.processorName.set(details.name);
         this.routes.set(toRoutes(details.properties ?? {}, details.annotationData));
         this.unplaced.set(unplacedRoutes(this.routes(), details.annotationData));
+        this.orderUnreadable.set(isOrderUnreadable(details.annotationData));
         this.validationErrors.set(details.validationErrors ?? []);
 
         // The routes may have been changed elsewhere, which a failed save reloads. Stop editing a route that was

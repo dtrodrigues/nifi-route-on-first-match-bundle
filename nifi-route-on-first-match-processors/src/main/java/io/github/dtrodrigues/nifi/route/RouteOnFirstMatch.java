@@ -229,7 +229,7 @@ public class RouteOnFirstMatch extends AbstractProcessor {
             results.add(new ValidationResult.Builder()
                     .subject("Evaluation Order")
                     .valid(false)
-                    .explanation(e.getMessage() + "; reorder the routes in the Advanced UI to replace it")
+                    .explanation(e.getMessage() + "; open Advanced and accept the order shown to replace it")
                     .build());
         }
 

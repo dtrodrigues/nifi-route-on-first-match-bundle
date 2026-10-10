@@ -86,6 +86,18 @@ class TestRouteOnFirstMatch {
     }
 
     @Test
+    void testLaterConditionsNotEvaluatedAfterFirstMatch() {
+        // evaluating this condition would fail the run by dividing by zero
+        runner.setProperty("large", "${size:toNumber():divide(0):gt(100)}");
+        setOrder("urgent", "large");
+
+        runner.enqueue(new byte[0], Map.of("priority", "urgent", "size", "500"));
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred("urgent", 1);
+    }
+
+    @Test
     void testInvalidUntilEveryRouteIsPlaced() {
         runner.assertNotValid();
 

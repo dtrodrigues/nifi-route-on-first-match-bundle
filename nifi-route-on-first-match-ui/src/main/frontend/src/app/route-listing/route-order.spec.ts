@@ -16,6 +16,7 @@
 
 import {
     deleteRouteUpdate,
+    isOrderUnreadable,
     parseAnnotationData,
     reorderUpdate,
     Route,
@@ -37,6 +38,19 @@ describe('route-order', () => {
         expect(parseAnnotationData('{}')).toEqual([]);
         expect(parseAnnotationData('not json')).toEqual([]);
         expect(parseAnnotationData('{"evaluationOrder": "a"}')).toEqual([]);
+    });
+
+    it('should detect an order the processor cannot read', () => {
+        expect(isOrderUnreadable(null)).toBe(false);
+        expect(isOrderUnreadable(' ')).toBe(false);
+        expect(isOrderUnreadable('{}')).toBe(false);
+        expect(isOrderUnreadable(order('a'))).toBe(false);
+        expect(isOrderUnreadable('not json')).toBe(true);
+        expect(isOrderUnreadable(order('a') + ' garbage')).toBe(true);
+        expect(isOrderUnreadable('null')).toBe(true);
+        expect(isOrderUnreadable('["a"]')).toBe(true);
+        expect(isOrderUnreadable('{"evaluationOrder": "a"}')).toBe(true);
+        expect(isOrderUnreadable('{"evaluationOrder": [1]}')).toBe(true);
     });
 
     it('should order saved routes first, then the rest alphabetically', () => {

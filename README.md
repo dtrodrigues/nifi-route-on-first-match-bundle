@@ -74,7 +74,10 @@ The NAR is written to `nifi-route-on-first-match-nar/target/nifi-route-on-first-
 ## Install
 
 Copy the NAR into NiFi's `lib/` directory and restart NiFi.
-Or drop it into the auto-load directory (`extensions/` by default), which needs no restart.
+Or drop it into the auto-load directory (`extensions/` by default), which needs no restart the first time.
+
+To replace an installed NAR with one of the same version, such as a new `-SNAPSHOT` build, copy it over the old one
+and restart NiFi. NiFi does not reload a NAR whose version is already loaded.
 
 ## Develop the Advanced UI
 

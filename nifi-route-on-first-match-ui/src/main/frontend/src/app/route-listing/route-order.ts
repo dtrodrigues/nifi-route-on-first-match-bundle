@@ -54,6 +54,29 @@ export function parseAnnotationData(annotationData: string | null | undefined): 
 }
 
 /**
+ * Whether the annotation data holds something other than a readable order, which makes the processor invalid.
+ * Must agree with EvaluationOrder.fromAnnotationData.
+ */
+export function isOrderUnreadable(annotationData: string | null | undefined): boolean {
+    if (!annotationData || annotationData.trim().length === 0) {
+        return false;
+    }
+    try {
+        const root = JSON.parse(annotationData);
+        if (root === null || typeof root !== 'object' || Array.isArray(root)) {
+            return true;
+        }
+        const order = root[ORDER_FIELD];
+        if (order === undefined || order === null) {
+            return false;
+        }
+        return !Array.isArray(order) || order.some((name) => typeof name !== 'string');
+    } catch (_e) {
+        return true;
+    }
+}
+
+/**
  * Builds the routes in evaluation order: routes in the saved order first, then routes not yet placed, such as those
  * added in the configuration dialog, alphabetically. Accepting the order shown saves them in that position.
  */

@@ -62,9 +62,10 @@ export function toRoutes(
     annotationData: string | null | undefined
 ): Route[] {
     const routes = new Map<string, Route>();
-    Object.entries(properties)
-        .filter(([, expression]) => expression !== null)
-        .forEach(([name, expression]) => routes.set(name, { name, expression: expression as string }));
+    // every property is a route, and routes always have an expression
+    Object.entries(properties).forEach(([name, expression]) =>
+        routes.set(name, { name, expression: expression as string })
+    );
 
     const ordered: Route[] = [];
     parseAnnotationData(annotationData).forEach((name) => {
@@ -79,19 +80,16 @@ export function toRoutes(
     return [...ordered, ...remaining];
 }
 
-export type RouteNameError = 'required' | 'lineBreak' | 'reserved' | 'duplicate';
+export type RouteNameError = 'required' | 'reserved' | 'duplicate';
 
 /**
- * Checks a route name as entered, before it is trimmed. Route names become relationship names, so they cannot
- * contain line breaks. Must agree with RouteOnFirstMatch.customValidate.
+ * Checks a route name as entered, before it is trimmed. Line breaks need no check, because the single-line name field
+ * cannot contain them. Must agree with RouteOnFirstMatch.customValidate.
  */
 export function routeNameError(input: string, routes: Route[], originalName: string | null): RouteNameError | null {
     const name = input.trim();
     if (name.length === 0) {
         return 'required';
-    }
-    if (/[\r\n]/.test(name)) {
-        return 'lineBreak';
     }
     if (name === UNMATCHED) {
         return 'reserved';
@@ -103,15 +101,11 @@ export function routeNameError(input: string, routes: Route[], originalName: str
 }
 
 /** Saves the order of the given routes along with any route property changes. */
-function withOrder(routes: Route[], properties: PropertyUpdates = {}): ConfigurationUpdate {
+export function reorderUpdate(routes: Route[], properties: PropertyUpdates = {}): ConfigurationUpdate {
     return {
         annotationData: JSON.stringify({ [ORDER_FIELD]: routes.map((route) => route.name) }),
         properties
     };
-}
-
-export function reorderUpdate(routes: Route[]): ConfigurationUpdate {
-    return withOrder(routes);
 }
 
 /**
@@ -131,11 +125,11 @@ export function saveRouteUpdate(routes: Route[], route: Route, originalName: str
     }
 
     properties[route.name] = route.expression;
-    return withOrder(updated, properties);
+    return reorderUpdate(updated, properties);
 }
 
 export function deleteRouteUpdate(routes: Route[], name: string): ConfigurationUpdate {
-    return withOrder(
+    return reorderUpdate(
         routes.filter((route) => route.name !== name),
         { [name]: null }
     );

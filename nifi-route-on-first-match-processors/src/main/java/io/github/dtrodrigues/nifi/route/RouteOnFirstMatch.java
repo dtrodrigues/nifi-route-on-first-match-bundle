@@ -197,7 +197,6 @@ public class RouteOnFirstMatch extends AbstractProcessor {
         return results;
     }
 
-
     /**
      * When this processor is scheduled, resolve the evaluation order of the dynamic properties
      * for quick access during each onTrigger call
@@ -248,7 +247,7 @@ public class RouteOnFirstMatch extends AbstractProcessor {
      * followed by any remaining names in alphabetical order. Names that are not conditions, such as routes
      * since removed in the configuration dialog, are ignored.
      */
-    static List<String> resolveEvaluationOrder(final List<String> evaluationOrder, final Set<String> conditionNames) {
+    private static List<String> resolveEvaluationOrder(final List<String> evaluationOrder, final Set<String> conditionNames) {
         final Set<String> ordered = new LinkedHashSet<>();
         for (final String name : evaluationOrder) {
             if (conditionNames.contains(name)) {

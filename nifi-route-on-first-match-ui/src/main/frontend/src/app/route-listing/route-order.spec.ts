@@ -90,8 +90,6 @@ describe('route-order', () => {
         expect(routeNameError('small', routes, null)).toBeNull();
         expect(routeNameError(' small ', routes, null)).toBeNull();
         expect(routeNameError('   ', routes, null)).toEqual('required');
-        expect(routeNameError('very\nlarge', routes, null)).toEqual('lineBreak');
-        expect(routeNameError('very\rlarge', routes, null)).toEqual('lineBreak');
         expect(routeNameError('unmatched', routes, null)).toEqual('reserved');
         expect(routeNameError('large', routes, null)).toEqual('duplicate');
         expect(routeNameError('large', routes, 'large')).toBeNull();

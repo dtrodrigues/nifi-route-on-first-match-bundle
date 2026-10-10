@@ -149,8 +149,6 @@
             <mat-hint>Becomes the name of the relationship</mat-hint>
             @if (routeForm.controls.name.hasError('duplicate')) {
                 <mat-error>A route with this name already exists</mat-error>
-            } @else if (routeForm.controls.name.hasError('lineBreak')) {
-                <mat-error>Name cannot contain line breaks</mat-error>
             } @else if (routeForm.controls.name.hasError('reserved')) {
                 <mat-error>This name is reserved</mat-error>
             } @else if (routeForm.controls.name.hasError('required')) {

@@ -29,7 +29,7 @@ import java.util.List;
  */
 final class EvaluationOrder {
 
-    static final String FIELD = "evaluationOrder";
+    private static final String FIELD = "evaluationOrder";
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 

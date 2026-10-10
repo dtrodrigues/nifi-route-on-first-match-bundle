@@ -87,7 +87,7 @@ export class RouteListing {
     reorderDisabled = computed(() => !this.editable || this.saving() || this.editing() !== null);
 
     routeForm = this.formBuilder.nonNullable.group({
-        name: ['', [Validators.required, (control: AbstractControl) => this.validateName(control)]],
+        name: ['', (control: AbstractControl) => this.validateName(control)],
         expression: ['', Validators.required]
     });
 

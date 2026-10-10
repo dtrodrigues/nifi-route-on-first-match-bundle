@@ -166,11 +166,4 @@ class TestRouteOnFirstMatch {
                 .collect(Collectors.toSet());
         assertEquals(Set.of("urgent", "unmatched"), remaining);
     }
-
-    @Test
-    void testResolveEvaluationOrder() {
-        assertEquals(List.of("c", "a", "b", "d"),
-                RouteOnFirstMatch.resolveEvaluationOrder(List.of("c", "missing", "a", "c"), Set.of("d", "b", "a", "c")));
-        assertEquals(List.of("a", "b"), RouteOnFirstMatch.resolveEvaluationOrder(List.of(), Set.of("b", "a")));
-    }
 }

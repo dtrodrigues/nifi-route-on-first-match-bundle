@@ -206,6 +206,14 @@ export class RouteListing {
         this.processorName.set(details.name);
         this.routes.set(toRoutes(details.properties ?? {}, details.annotationData));
         this.validationErrors.set(details.validationErrors ?? []);
+
+        // The routes may have been changed elsewhere, which a failed save reloads. Stop editing a route that was
+        // deleted, and check the name again so it cannot overwrite a route that was added with the same name.
+        const editing = this.editing();
+        if (editing !== null && editing !== NEW_ROUTE && !this.routes().some((route) => route.name === editing)) {
+            this.editing.set(null);
+        }
+        this.routeForm.controls.name.updateValueAndValidity();
     }
 
     private setFormEnabled(): void {

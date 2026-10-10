@@ -16,8 +16,10 @@
 package io.github.dtrodrigues.nifi.route;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.json.JsonMapper;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -31,7 +33,8 @@ final class EvaluationOrder {
 
     private static final String FIELD = "evaluationOrder";
 
-    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+    // Rejects anything after the JSON object, as the Advanced UI's JSON.parse does, so both read the same order
+    private static final ObjectMapper OBJECT_MAPPER = JsonMapper.builder().enable(DeserializationFeature.FAIL_ON_TRAILING_TOKENS).build();
 
     private EvaluationOrder() {
     }

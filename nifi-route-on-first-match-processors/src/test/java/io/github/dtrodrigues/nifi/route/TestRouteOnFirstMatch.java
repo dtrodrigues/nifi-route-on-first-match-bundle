@@ -115,7 +115,7 @@ class TestRouteOnFirstMatch {
 
     @Test
     void testInvalidWhenAnnotationDataIsMalformed() {
-        for (final String annotationData : List.of("not json", "[\"urgent\"]", "{\"evaluationOrder\": \"urgent\"}", "{\"evaluationOrder\": [1]}")) {
+        for (final String annotationData : List.of("not json", "{\"evaluationOrder\": [\"urgent\"]} garbage", "[\"urgent\"]", "{\"evaluationOrder\": \"urgent\"}", "{\"evaluationOrder\": [1]}")) {
             runner.setAnnotationData(annotationData);
             runner.assertNotValid();
         }

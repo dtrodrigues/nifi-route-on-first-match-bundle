@@ -12,8 +12,8 @@ otherwise end up chaining several `RouteOnAttribute` processors. RouteOnFirstMat
 - Each user-defined property is a route. Its name becomes a relationship, and its value is an
   Expression Language condition that returns `true` or `false`.
 - Routes are evaluated in the order you set by dragging them in the processor's **Advanced** UI,
-  highest priority first. Routes not yet placed, such as ones added in the configuration dialog,
-  are evaluated after the others, alphabetically.
+  highest priority first. With more than one route, the processor is invalid until every route,
+  including ones added in the configuration dialog, has been placed there.
 - Evaluation stops at the first match. A FlowFile is never cloned.
 - FlowFiles that match nothing go to `unmatched`.
 - The chosen route is written to the `RouteOnFirstMatch.Route` attribute.
@@ -39,8 +39,9 @@ Right-click the processor and choose **Advanced**. The routes appear as a number
 Every change is saved to the processor right away. The processor must be stopped to make changes.
 
 The order is stored in the processor's annotation data, which the configuration dialog does not show,
-so it cannot be seen or changed there. Routes added in the configuration dialog are evaluated after the
-ordered ones, alphabetically, until they are dragged into place.
+so it cannot be seen or changed there. A route added in the configuration dialog has no place in the order,
+so the processor is invalid until you open **Advanced** and either drag it into place or click
+**Accept order**, which keeps it where it is shown, at the end. A processor with only one route needs no order.
 
 Outside the browser, the order is the processor's `annotationData`, for example
 `{"evaluationOrder": ["urgent", "large"]}`, in the REST API and in flow definitions.

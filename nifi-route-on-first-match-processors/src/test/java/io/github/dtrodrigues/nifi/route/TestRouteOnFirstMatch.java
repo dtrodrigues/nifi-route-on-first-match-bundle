@@ -15,7 +15,9 @@
  */
 package io.github.dtrodrigues.nifi.route;
 
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.util.MockProcessContext;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -82,14 +84,40 @@ class TestRouteOnFirstMatch {
     }
 
     @Test
-    void testUnlistedConditionsEvaluatedAlphabeticallyAfterListed() {
+    void testInvalidUntilEveryRouteIsPlaced() {
+        runner.assertNotValid();
+
+        setOrder("urgent");
+        runner.assertNotValid();
+
+        setOrder("urgent", "large");
+        runner.assertValid();
+
+        runner.setProperty("big", "${size:gt(10)}");
+        runner.assertNotValid();
+    }
+
+    @Test
+    void testUnplacedRoutesNamedInValidationMessage() {
         runner.setProperty("big", "${size:gt(10)}");
         setOrder("urgent");
 
-        runner.enqueue(new byte[0], Map.of("priority", "normal", "size", "500"));
+        final List<String> explanations = ((MockProcessContext) runner.getProcessContext()).validate().stream()
+                .filter(result -> !result.isValid())
+                .map(ValidationResult::getExplanation)
+                .toList();
+        assertEquals(List.of("routes 'big', 'large' have not been placed in the order; open Advanced to place them"), explanations);
+    }
+
+    @Test
+    void testSingleRouteNeedsNoOrder() {
+        runner.removeProperty("large");
+        runner.assertValid();
+
+        runner.enqueue(new byte[0], Map.of("priority", "urgent"));
         runner.run();
 
-        runner.assertAllFlowFilesTransferred("big", 1);
+        runner.assertAllFlowFilesTransferred("urgent", 1);
     }
 
     @Test
@@ -104,17 +132,8 @@ class TestRouteOnFirstMatch {
     }
 
     @Test
-    void testUnorderedRoutesUseAlphabeticalOrderWithoutAnnotationData() {
-        runner.assertValid();
-
-        runner.enqueue(new byte[0], Map.of("priority", "urgent", "size", "500"));
-        runner.run();
-
-        runner.assertAllFlowFilesTransferred("large", 1);
-    }
-
-    @Test
     void testInvalidWhenAnnotationDataIsMalformed() {
+        setOnlyRoute("small");
         for (final String annotationData : List.of("not json", "{\"evaluationOrder\": [\"urgent\"]} garbage", "[\"urgent\"]", "{\"evaluationOrder\": \"urgent\"}", "{\"evaluationOrder\": [1]}")) {
             runner.setAnnotationData(annotationData);
             runner.assertNotValid();
@@ -129,27 +148,34 @@ class TestRouteOnFirstMatch {
         assertEquals(List.of("b", "a"), EvaluationOrder.fromAnnotationData("{\"evaluationOrder\": [\"b\", \"a\"]}"));
     }
 
+    /**
+     * Leaves only the given route, so the order is not what makes the processor invalid
+     */
+    private void setOnlyRoute(final String name) {
+        runner.removeProperty("urgent");
+        runner.removeProperty("large");
+        runner.setProperty(name, "${size:gt(100)}");
+    }
+
     @Test
     void testInvalidWhenConditionNamedUnmatched() {
-        runner.setProperty("unmatched", "${size:gt(100)}");
+        setOnlyRoute("unmatched");
         runner.assertNotValid();
     }
 
     @Test
     void testInvalidWhenConditionNameContainsLineBreak() {
-        runner.assertValid();
-
-        runner.setProperty("very\nlarge", "${size:gt(1000)}");
+        setOnlyRoute("very\nlarge");
         runner.assertNotValid();
 
         runner.removeProperty("very\nlarge");
-        runner.setProperty("very\rlarge", "${size:gt(1000)}");
+        runner.setProperty("very\rlarge", "${size:gt(100)}");
         runner.assertNotValid();
     }
 
     @Test
     void testInvalidWhenConditionNameHasSurroundingWhitespace() {
-        runner.setProperty(" small", "${size:lt(10)}");
+        setOnlyRoute(" small");
         runner.assertNotValid();
     }
 

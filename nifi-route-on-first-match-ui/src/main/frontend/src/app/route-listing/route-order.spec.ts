@@ -21,7 +21,8 @@ import {
     Route,
     routeNameError,
     saveRouteUpdate,
-    toRoutes
+    toRoutes,
+    unplacedRoutes
 } from './route-order';
 
 describe('route-order', () => {
@@ -50,6 +51,13 @@ describe('route-order', () => {
         );
         expect(routes.map((route) => route.name)).toEqual(['c', 'a', 'b', 'd']);
         expect(routes[0].expression).toEqual('C');
+    });
+
+    it('should find routes not yet placed, unless there is only one route', () => {
+        expect(unplacedRoutes([urgent, large], order('urgent'))).toEqual(['large']);
+        expect(unplacedRoutes([urgent, large], null)).toEqual(['urgent', 'large']);
+        expect(unplacedRoutes([urgent, large], order('large', 'urgent'))).toEqual([]);
+        expect(unplacedRoutes([urgent], null)).toEqual([]);
     });
 
     it('should save the new order when reordering', () => {

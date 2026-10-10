@@ -35,7 +35,8 @@ import {
     routeNameError,
     saveRouteUpdate,
     toRoutes,
-    UNMATCHED
+    UNMATCHED,
+    unplacedRoutes
 } from './route-order';
 
 /** Marks the panel for a route that has not been saved yet. */
@@ -82,6 +83,7 @@ export class RouteListing {
     processorName = signal('');
     validationErrors = signal<string[]>([]);
     routes = signal<Route[]>([]);
+    unplaced = signal<string[]>([]);
     editing = signal<string | null>(null);
 
     reorderDisabled = computed(() => !this.editable || this.saving() || this.editing() !== null);
@@ -119,6 +121,11 @@ export class RouteListing {
         moveItemInArray(reordered, event.previousIndex, event.currentIndex);
         this.routes.set(reordered);
         this.save(reorderUpdate(reordered));
+    }
+
+    /** Places any unplaced routes where they are shown, at the end. */
+    acceptOrder(): void {
+        this.save(reorderUpdate(this.routes()));
     }
 
     startEdit(route: Route): void {
@@ -205,6 +212,7 @@ export class RouteListing {
         }
         this.processorName.set(details.name);
         this.routes.set(toRoutes(details.properties ?? {}, details.annotationData));
+        this.unplaced.set(unplacedRoutes(this.routes(), details.annotationData));
         this.validationErrors.set(details.validationErrors ?? []);
 
         // The routes may have been changed elsewhere, which a failed save reloads. Stop editing a route that was

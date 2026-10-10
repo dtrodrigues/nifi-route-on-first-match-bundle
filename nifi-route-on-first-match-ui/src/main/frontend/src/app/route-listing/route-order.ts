@@ -54,8 +54,8 @@ export function parseAnnotationData(annotationData: string | null | undefined): 
 }
 
 /**
- * Builds the routes in evaluation order the same way the processor does: routes in the saved order first,
- * then any remaining routes, such as those added in the configuration dialog, alphabetically.
+ * Builds the routes in evaluation order: routes in the saved order first, then routes not yet placed, such as those
+ * added in the configuration dialog, alphabetically. Accepting the order shown saves them in that position.
  */
 export function toRoutes(
     properties: Record<string, string | null>,
@@ -78,6 +78,18 @@ export function toRoutes(
 
     const remaining = Array.from(routes.values()).sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
     return [...ordered, ...remaining];
+}
+
+/**
+ * Routes that have not been placed in the saved order. The processor is invalid while there are any, unless there is
+ * only one route. Must agree with RouteOnFirstMatch.customValidate.
+ */
+export function unplacedRoutes(routes: Route[], annotationData: string | null | undefined): string[] {
+    if (routes.length < 2) {
+        return [];
+    }
+    const order = parseAnnotationData(annotationData);
+    return routes.map((route) => route.name).filter((name) => !order.includes(name));
 }
 
 export type RouteNameError = 'required' | 'reserved' | 'duplicate';

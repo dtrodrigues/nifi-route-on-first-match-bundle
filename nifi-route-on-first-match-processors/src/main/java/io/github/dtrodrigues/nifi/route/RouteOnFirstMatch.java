@@ -63,12 +63,13 @@ import java.util.concurrent.atomic.AtomicReference;
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @Tags({"attributes", "routing", "first", "match", "priority", "ordered", "Expression Language"})
 @CapabilityDescription("Routes FlowFiles to the first relationship whose Expression Language condition evaluates to true. Conditions are evaluated "
-        + "in the order set by drag and drop in the Advanced UI, the only place the order can be seen or changed. A FlowFile is never "
-        + "cloned: it is routed to exactly one relationship, or to 'unmatched' if no condition evaluates to true.")
+        + "in the order set by drag and drop in the Advanced UI, the only place the order can be seen or changed. When there is more than "
+        + "one route, the processor is invalid until every route has been placed in the order there. A FlowFile is never cloned: it is "
+        + "routed to exactly one relationship, or to 'unmatched' if no condition evaluates to true.")
 @DynamicProperty(name = "Relationship Name", value = "Expression Language expression that returns a boolean value indicating whether or not the FlowFile matches",
         expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES,
         description = "Routes FlowFiles to the Relationship specified in the Dynamic Property Key if the expression is the first, in evaluation order, "
-                + "to evaluate to true")
+                + "to evaluate to true. " + RouteOnFirstMatch.ROUTE_DESCRIPTION)
 @DynamicRelationship(name = "Name from Dynamic Property", description = "FlowFiles for which this Dynamic Property is the first to match")
 @WritesAttributes({
     @WritesAttribute(attribute = RouteOnFirstMatch.ROUTE_ATTRIBUTE_KEY, description = "The relationship to which the FlowFile was routed")
@@ -82,7 +83,8 @@ import java.util.concurrent.atomic.AtomicReference;
         and the value is an Expression Language expression that returns a boolean value.
 
         Open the Advanced UI and drag the routes into the order in which they should be evaluated, highest priority first. \
-        The order can only be seen and changed in the Advanced UI. Routes not yet placed there are evaluated last, alphabetically.
+        The order can only be seen and changed in the Advanced UI. While there is more than one route, the processor is invalid \
+        until every route has been placed there, including routes added in the configuration dialog.
 
         For example:
             - "urgent" = "${priority:equals('urgent')}"
@@ -95,6 +97,9 @@ import java.util.concurrent.atomic.AtomicReference;
 public class RouteOnFirstMatch extends AbstractProcessor {
 
     public static final String ROUTE_ATTRIBUTE_KEY = "RouteOnFirstMatch.Route";
+
+    static final String ROUTE_DESCRIPTION = "Routes are evaluated in the order set in the Advanced UI. "
+            + "After adding a route here, open Advanced to place it in the order.";
 
     public static final Relationship REL_NO_MATCH = new Relationship.Builder()
             .name("unmatched")
@@ -120,6 +125,7 @@ public class RouteOnFirstMatch extends AbstractProcessor {
         return new PropertyDescriptor.Builder()
                 .required(false)
                 .name(propertyDescriptorName)
+                .description(ROUTE_DESCRIPTION)
                 .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(ResultType.BOOLEAN, false))
                 .dynamic(true)
                 .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
@@ -185,7 +191,19 @@ public class RouteOnFirstMatch extends AbstractProcessor {
         }
 
         try {
-            EvaluationOrder.fromAnnotationData(validationContext.getAnnotationData());
+            final List<String> evaluationOrder = EvaluationOrder.fromAnnotationData(validationContext.getAnnotationData());
+            // A single route needs no order. With more, a route that was never placed, such as one added in the configuration dialog,
+            // would otherwise be evaluated in a position nobody chose.
+            final Set<String> unplaced = new TreeSet<>(conditionNames);
+            evaluationOrder.forEach(unplaced::remove);
+            if (conditionNames.size() > 1 && !unplaced.isEmpty()) {
+                results.add(new ValidationResult.Builder()
+                        .subject("Evaluation Order")
+                        .valid(false)
+                        .explanation("%s not been placed in the order; open Advanced to place %s"
+                                .formatted(describeRoutes(unplaced), unplaced.size() == 1 ? "it" : "them"))
+                        .build());
+            }
         } catch (final IllegalArgumentException e) {
             results.add(new ValidationResult.Builder()
                     .subject("Evaluation Order")
@@ -242,10 +260,15 @@ public class RouteOnFirstMatch extends AbstractProcessor {
         session.transfer(flowFile, destination);
     }
 
+    private static String describeRoutes(final Set<String> names) {
+        final String quoted = String.join(", ", names.stream().map("'%s'"::formatted).toList());
+        return names.size() == 1 ? "route %s has".formatted(quoted) : "routes %s have".formatted(quoted);
+    }
+
     /**
-     * Orders the given condition names: those in the evaluation order come first, in that order,
-     * followed by any remaining names in alphabetical order. Names that are not conditions, such as routes
-     * since removed in the configuration dialog, are ignored.
+     * Orders the given condition names: those in the evaluation order come first, in that order, followed by any
+     * remaining name. Validation allows a name outside the order only when it is the only condition. Names that are
+     * not conditions, such as routes since removed in the configuration dialog, are ignored.
      */
     private static List<String> resolveEvaluationOrder(final List<String> evaluationOrder, final Set<String> conditionNames) {
         final Set<String> ordered = new LinkedHashSet<>();
@@ -254,9 +277,7 @@ public class RouteOnFirstMatch extends AbstractProcessor {
                 ordered.add(name);
             }
         }
-        for (final String name : new TreeSet<>(conditionNames)) {
-            ordered.add(name);
-        }
+        ordered.addAll(conditionNames);
         return List.copyOf(ordered);
     }
 

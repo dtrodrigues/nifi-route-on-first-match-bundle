@@ -115,9 +115,29 @@ public class RouteOnFirstMatch extends AbstractProcessor {
      */
     private volatile List<Route> routes = List.of();
 
+    /**
+     * The evaluation order as of the last validation. NiFi gives a processor its annotation data only through a context,
+     * and revalidates it whenever the annotation data changes, so this is how the processor keeps up with the order
+     * outside of validation and scheduling.
+     */
+    private volatile List<String> lastValidatedOrder = List.of();
+
     @Override
     public Set<Relationship> getRelationships() {
         return relationships.get();
+    }
+
+    /**
+     * Declares the routes in evaluation order. NiFi lists declared properties first, in the declared order, so the
+     * configuration dialog shows the routes in the order set in the Advanced UI instead of alphabetically.
+     */
+    @Override
+    protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
+        final List<PropertyDescriptor> descriptors = new ArrayList<>();
+        for (final String name : resolveEvaluationOrder(lastValidatedOrder, dynamicPropertyNames)) {
+            descriptors.add(getSupportedDynamicPropertyDescriptor(name));
+        }
+        return descriptors;
     }
 
     @Override
@@ -192,6 +212,7 @@ public class RouteOnFirstMatch extends AbstractProcessor {
 
         try {
             final List<String> evaluationOrder = EvaluationOrder.fromAnnotationData(validationContext.getAnnotationData());
+            lastValidatedOrder = evaluationOrder;
             // A single route needs no order. With more, a route that was never placed, such as one added in the configuration dialog,
             // would otherwise be evaluated in a position nobody chose.
             final Set<String> unplaced = new TreeSet<>(conditionNames);
@@ -266,9 +287,10 @@ public class RouteOnFirstMatch extends AbstractProcessor {
     }
 
     /**
-     * Orders the given condition names: those in the evaluation order come first, in that order, followed by any
-     * remaining name. Validation allows a name outside the order only when it is the only condition. Names that are
-     * not conditions, such as routes since removed in the configuration dialog, are ignored.
+     * Orders the given condition names: those in the evaluation order come first, in that order, followed by the
+     * remaining names alphabetically, as the Advanced UI shows them. Validation allows a name outside the order only
+     * when it is the only condition. Names that are not conditions, such as routes since removed in the configuration
+     * dialog, are ignored.
      */
     private static List<String> resolveEvaluationOrder(final List<String> evaluationOrder, final Set<String> conditionNames) {
         final Set<String> ordered = new LinkedHashSet<>();
@@ -277,7 +299,7 @@ public class RouteOnFirstMatch extends AbstractProcessor {
                 ordered.add(name);
             }
         }
-        ordered.addAll(conditionNames);
+        ordered.addAll(new TreeSet<>(conditionNames));
         return List.copyOf(ordered);
     }
 

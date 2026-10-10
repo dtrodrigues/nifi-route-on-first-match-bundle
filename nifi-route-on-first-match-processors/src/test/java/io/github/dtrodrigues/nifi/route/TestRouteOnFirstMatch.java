@@ -15,6 +15,7 @@
  */
 package io.github.dtrodrigues.nifi.route;
 
+import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.util.MockProcessContext;
@@ -31,6 +32,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class TestRouteOnFirstMatch {
 
@@ -177,6 +179,35 @@ class TestRouteOnFirstMatch {
     void testInvalidWhenConditionNameHasSurroundingWhitespace() {
         setOnlyRoute(" small");
         runner.assertNotValid();
+    }
+
+    @Test
+    void testRoutesDeclaredInEvaluationOrder() {
+        runner.setProperty("big", "${size:gt(10)}");
+        setOrder("urgent", "large");
+        runner.assertNotValid();
+        assertEquals(List.of("urgent", "large", "big"), declaredRouteNames());
+
+        setOrder("large", "big", "urgent");
+        runner.assertValid();
+        assertEquals(List.of("large", "big", "urgent"), declaredRouteNames());
+
+        runner.removeProperty("big");
+        assertEquals(List.of("large", "urgent"), declaredRouteNames());
+        assertTrue(runner.getProcessor().getPropertyDescriptors().stream().allMatch(PropertyDescriptor::isDynamic));
+    }
+
+    @Test
+    void testDeclaredRoutesStillValidated() {
+        setOrder("urgent", "large");
+        runner.assertValid();
+
+        runner.setProperty("large", "${size:gt(100)");
+        runner.assertNotValid();
+    }
+
+    private List<String> declaredRouteNames() {
+        return runner.getProcessor().getPropertyDescriptors().stream().map(PropertyDescriptor::getName).toList();
     }
 
     @Test

@@ -1,5 +1,7 @@
 # RouteOnFirstMatch for Apache NiFi
 
+[![CI](https://github.com/dtrodrigues/nifi-route-on-first-match-bundle/actions/workflows/ci.yml/badge.svg)](https://github.com/dtrodrigues/nifi-route-on-first-match-bundle/actions/workflows/ci.yml)
+
 A NiFi processor that sends each FlowFile to the **first** route whose condition is true.
 You set the order the routes are checked in by dragging them in the processor's Advanced UI.
 

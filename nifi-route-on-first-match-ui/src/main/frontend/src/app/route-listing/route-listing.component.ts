@@ -65,8 +65,8 @@ export class RouteListing {
     private service = inject(RouteOnFirstMatchService);
     private formBuilder = inject(FormBuilder);
 
-    // NiFi passes these as query parameters, which QueryStringToFragmentFilter moves into the URL fragment
-    private params = new URLSearchParams(window.location.hash.split('?')[1] ?? '');
+    // NiFi passes these as query parameters
+    private params = new URLSearchParams(window.location.search);
     private processorId = this.params.get('id') ?? '';
     private revision = Number(this.params.get('revision') ?? 0);
     private clientId = this.params.get('clientId') ?? '';
@@ -104,6 +104,8 @@ export class RouteListing {
         this.loadError.set(null);
         this.service.getProcessorDetails(this.processorId).subscribe({
             next: (details) => {
+                // NiFi 1.x does not return the new revision, but every update increments it by one
+                this.revision += 1;
                 this.applyDetails(details);
                 this.loading.set(false);
             },
@@ -192,6 +194,8 @@ export class RouteListing {
 
         request$.subscribe({
             next: (details) => {
+                // NiFi 1.x does not return the new revision, but every update increments it by one
+                this.revision += 1;
                 this.applyDetails(details);
                 this.saving.set(false);
                 this.setFormEnabled();
@@ -208,10 +212,6 @@ export class RouteListing {
     }
 
     private applyDetails(details: ProcessorDetails): void {
-        this.revision = details.revision.version;
-        if (details.revision.clientId) {
-            this.clientId = details.revision.clientId;
-        }
         this.processorName.set(details.name);
         this.routes.set(toRoutes(details.properties ?? {}, details.annotationData));
         this.unplaced.set(unplacedRoutes(this.routes(), details.annotationData));

@@ -18,13 +18,13 @@
     <!-- The parent version is the NiFi release built against; keep it equal to nifi.version below -->
     <parent>
         <groupId>org.apache.nifi</groupId>
-        <artifactId>nifi-extension-bundles</artifactId>
-        <version>2.12.0</version>
+        <artifactId>nifi-nar-bundles</artifactId>
+        <version>1.28.1</version>
     </parent>
 
     <groupId>io.github.dtrodrigues</groupId>
     <artifactId>nifi-route-on-first-match-bundle</artifactId>
-    <version>1.0.0-SNAPSHOT</version>
+    <version>1.0.0-nifi1-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>RouteOnFirstMatch for Apache NiFi</name>
     <description>A NiFi processor that routes each FlowFile to the first matching condition, with a drag-and-drop Advanced UI for ordering conditions</description>
@@ -54,7 +54,10 @@
     </scm>
 
     <properties>
-        <nifi.version>2.12.0</nifi.version>
+        <nifi.version>1.28.1</nifi.version>
+        <!-- NiFi 1.x runs on Java 8, so the NAR must too; the tests do not ship, so they may use newer Java -->
+        <maven.compiler.release>8</maven.compiler.release>
+        <maven.compiler.testRelease>17</maven.compiler.testRelease>
         <!-- Fixed timestamp for reproducible builds; the NiFi parent otherwise supplies its own release date -->
         <project.build.outputTimestamp>2026-10-09T00:00:00Z</project.build.outputTimestamp>
     </properties>
@@ -67,6 +70,17 @@
 
     <build>
         <plugins>
+            <!-- The NiFi 1.x parent also compiles the tests with the Groovy compiler, which this project does not need -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>groovy-tests</id>
+                        <phase>none</phase>
+                    </execution>
+                </executions>
+            </plugin>
             <!-- The NiFi parent allows SNAPSHOT dependencies only on NiFi itself; allow this project's own modules too -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>

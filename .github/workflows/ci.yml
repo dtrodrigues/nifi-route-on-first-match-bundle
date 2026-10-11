@@ -14,10 +14,6 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
-env:
-  # The NiFi parent pom requires at least this version, which the runner image may not have yet
-  MAVEN_VERSION: 3.9.16
-
 jobs:
   build:
     name: Build and test
@@ -32,14 +28,9 @@ jobs:
       - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
         with:
           distribution: temurin
-          java-version: 21
+          # The NiFi 1.x parent pom refuses to build on Java 21 or later
+          java-version: 17
           cache: maven
-
-      - name: Install Maven ${{ env.MAVEN_VERSION }}
-        run: |
-          curl -fsSL "https://archive.apache.org/dist/maven/maven-3/${MAVEN_VERSION}/binaries/apache-maven-${MAVEN_VERSION}-bin.tar.gz" \
-            | tar -xz -C "$RUNNER_TEMP"
-          echo "$RUNNER_TEMP/apache-maven-${MAVEN_VERSION}/bin" >> "$GITHUB_PATH"
 
       # Maven runs npm ci for the Advanced UI, which reuses packages from this cache
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0

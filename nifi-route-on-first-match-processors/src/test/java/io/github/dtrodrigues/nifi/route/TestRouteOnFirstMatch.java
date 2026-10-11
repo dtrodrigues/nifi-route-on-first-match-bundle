@@ -66,12 +66,12 @@ class TestRouteOnFirstMatch {
         runner.assertTransferCount("large", 1);
         runner.assertTransferCount(RouteOnFirstMatch.REL_NO_MATCH, 1);
 
-        final MockFlowFile urgent = runner.getFlowFilesForRelationship("urgent").getFirst();
+        final MockFlowFile urgent = runner.getFlowFilesForRelationship("urgent").get(0);
         urgent.assertAttributeEquals("size", "500");
         urgent.assertAttributeEquals(RouteOnFirstMatch.ROUTE_ATTRIBUTE_KEY, "urgent");
 
-        runner.getFlowFilesForRelationship("large").getFirst().assertAttributeEquals("priority", "normal");
-        runner.getFlowFilesForRelationship(RouteOnFirstMatch.REL_NO_MATCH).getFirst()
+        runner.getFlowFilesForRelationship("large").get(0).assertAttributeEquals("priority", "normal");
+        runner.getFlowFilesForRelationship(RouteOnFirstMatch.REL_NO_MATCH).get(0)
                 .assertAttributeEquals(RouteOnFirstMatch.ROUTE_ATTRIBUTE_KEY, "unmatched");
     }
 

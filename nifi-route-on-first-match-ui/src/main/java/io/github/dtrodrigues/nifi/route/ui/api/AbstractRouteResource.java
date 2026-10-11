@@ -17,9 +17,9 @@
 
 package io.github.dtrodrigues.nifi.route.ui.api;
 
-import jakarta.servlet.ServletContext;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.ws.rs.core.Context;
+import javax.servlet.ServletContext;
+import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.core.Context;
 import org.apache.nifi.web.NiFiWebConfigurationContext;
 
 public abstract class AbstractRouteResource {

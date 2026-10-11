@@ -23,10 +23,6 @@ export interface ProcessorDetails {
     id: string;
     name: string;
     state: string;
-    revision: {
-        version: number;
-        clientId: string | null;
-    };
     annotationData: string | null;
     properties: Record<string, string | null>;
     validationErrors: string[] | null;

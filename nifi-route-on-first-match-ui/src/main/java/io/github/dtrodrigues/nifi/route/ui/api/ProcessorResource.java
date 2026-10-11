@@ -17,14 +17,14 @@
 
 package io.github.dtrodrigues.nifi.route.ui.api;
 
-import jakarta.ws.rs.Consumes;
-import jakarta.ws.rs.GET;
-import jakarta.ws.rs.PUT;
-import jakarta.ws.rs.Path;
-import jakarta.ws.rs.Produces;
-import jakarta.ws.rs.QueryParam;
-import jakarta.ws.rs.core.MediaType;
-import jakarta.ws.rs.core.Response;
+import javax.ws.rs.Consumes;
+import javax.ws.rs.GET;
+import javax.ws.rs.PUT;
+import javax.ws.rs.Path;
+import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
 import org.apache.nifi.web.ComponentDetails;
 import org.apache.nifi.web.NiFiWebConfigurationContext;
 import org.apache.nifi.web.NiFiWebConfigurationRequestContext;
@@ -55,16 +55,37 @@ public class ProcessorResource extends AbstractRouteResource {
         final NiFiWebConfigurationContext nifiWebContext = getWebConfigurationContext();
         final NiFiWebConfigurationRequestContext niFiRequestContext = ProcessorWebUtils.getRequestContext(processorId, revisionId, clientId, isDisconnectionAcknowledged, request);
         // The order (annotation data) and the routes (properties) are saved together, so a rename and its new place in the order apply at once
-        final ComponentDetails componentDetails = nifiWebContext.updateComponent(niFiRequestContext, update.annotationData(), update.properties());
+        final ComponentDetails componentDetails = nifiWebContext.updateComponent(niFiRequestContext, update.getAnnotationData(), update.getProperties());
         final Response.ResponseBuilder response = ProcessorWebUtils.applyCacheControl(Response.ok(componentDetails));
         return response.build();
     }
 
-    /**
-     * @param annotationData the evaluation order, or null to leave it unchanged
-     * @param properties the properties to change; a null value removes the property
-     */
-    public record ConfigurationUpdate(String annotationData, Map<String, String> properties) {
+    public static class ConfigurationUpdate {
+
+        private String annotationData;
+        private Map<String, String> properties;
+
+        /**
+         * @return the evaluation order, or null to leave it unchanged
+         */
+        public String getAnnotationData() {
+            return annotationData;
+        }
+
+        public void setAnnotationData(final String annotationData) {
+            this.annotationData = annotationData;
+        }
+
+        /**
+         * @return the properties to change; a null value removes the property
+         */
+        public Map<String, String> getProperties() {
+            return properties;
+        }
+
+        public void setProperties(final Map<String, String> properties) {
+            this.properties = properties;
+        }
     }
 
 }

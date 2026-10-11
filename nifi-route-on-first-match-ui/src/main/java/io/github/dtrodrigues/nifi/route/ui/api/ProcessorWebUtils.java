@@ -17,9 +17,9 @@
 
 package io.github.dtrodrigues.nifi.route.ui.api;
 
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.ws.rs.core.CacheControl;
-import jakarta.ws.rs.core.Response;
+import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.core.CacheControl;
+import javax.ws.rs.core.Response;
 import org.apache.nifi.web.ComponentDetails;
 import org.apache.nifi.web.HttpServletConfigurationRequestContext;
 import org.apache.nifi.web.HttpServletRequestContext;

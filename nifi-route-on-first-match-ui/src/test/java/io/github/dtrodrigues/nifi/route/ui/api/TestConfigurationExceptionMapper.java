@@ -15,8 +15,8 @@
  */
 package io.github.dtrodrigues.nifi.route.ui.api;
 
-import jakarta.ws.rs.NotFoundException;
-import jakarta.ws.rs.core.Response;
+import javax.ws.rs.NotFoundException;
+import javax.ws.rs.core.Response;
 import org.apache.nifi.web.InvalidRevisionException;
 import org.apache.nifi.web.ResourceNotFoundException;
 import org.junit.jupiter.api.Test;

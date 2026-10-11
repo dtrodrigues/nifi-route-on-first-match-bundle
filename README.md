@@ -1,6 +1,9 @@
 # RouteOnFirstMatch for Apache NiFi
 
-[![CI](https://github.com/dtrodrigues/nifi-route-on-first-match-bundle/actions/workflows/ci.yml/badge.svg)](https://github.com/dtrodrigues/nifi-route-on-first-match-bundle/actions/workflows/ci.yml)
+[![CI](https://github.com/dtrodrigues/nifi-route-on-first-match-bundle/actions/workflows/ci.yml/badge.svg?branch=nifi-1.x)](https://github.com/dtrodrigues/nifi-route-on-first-match-bundle/actions/workflows/ci.yml)
+
+> **This is the NiFi 1.x branch.** For NiFi 2.x, use the
+> [`main` branch](https://github.com/dtrodrigues/nifi-route-on-first-match-bundle/tree/main).
 
 A NiFi processor that sends each FlowFile to the **first** route whose condition is true.
 You set the order the routes are checked in by dragging them in the processor's Advanced UI.
@@ -50,22 +53,19 @@ Outside the browser, the order is the processor's `annotationData`, for example
 
 ## Compatibility
 
-Requires NiFi 2.x (Java 21). The NAR is built against the NiFi version in the root `pom.xml` (currently 2.12.0).
-It does not run on NiFi 1.x, which uses a different Java version, Jetty, and UI.
+Requires NiFi 1.x running on Java 8 or later. The NAR is built against the NiFi version in the root `pom.xml`
+(currently 1.28.1), and its versions end in `-nifi1` so they never collide with the NiFi 2.x builds from `main`.
+The processor, its routes and the saved order are the same on both branches, so a flow upgraded from NiFi 1.x to 2.x
+keeps its routes and order once the NiFi 2.x NAR is installed.
 
-To target a different NiFi 2.x release, change both the parent version and `nifi.version` in the root `pom.xml`, then refresh the
-Advanced UI's copy of the NiFi theme so it matches that release, and rebuild:
+To target a different NiFi 1.x release, change both the parent version and `nifi.version` in the root `pom.xml`.
 
-```shell
-./update-nifi-theme.sh          # copies the theme from the NiFi release named by nifi.version
-```
-
-The theme lives in `nifi-route-on-first-match-ui/src/main/frontend/src/nifi-shared`, and its `SOURCE` file records
-which NiFi release it came from. Run `./update-nifi-theme.sh --help` for other options.
+The Advanced UI keeps the NiFi 2.x look, in its light theme, rather than NiFi 1.x's.
+`./update-nifi-theme.sh` needs a NiFi 2.x version on this branch, for example `./update-nifi-theme.sh 2.12.0`.
 
 ## Build
 
-Requires Java 21 and Maven 3.9.16 or later (enforced by the NiFi parent pom). Maven downloads Node.js into `target/` to build the Advanced UI.
+Requires Java 17 and Maven 3.6 or later. The NiFi 1.x parent pom refuses to build on Java 21 or later. Maven downloads Node.js into `target/` to build the Advanced UI.
 
 ```shell
 mvn clean install

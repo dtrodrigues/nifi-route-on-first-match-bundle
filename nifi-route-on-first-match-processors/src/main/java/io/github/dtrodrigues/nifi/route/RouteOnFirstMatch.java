@@ -27,7 +27,6 @@ import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
-import org.apache.nifi.annotation.documentation.UseCase;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
@@ -44,6 +43,7 @@ import org.apache.nifi.processor.util.StandardValidators;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
@@ -52,6 +52,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 
 /**
  * Routes each FlowFile to exactly one relationship: the one belonging to the first user-defined expression that evaluates to true.
@@ -75,25 +76,6 @@ import java.util.concurrent.atomic.AtomicReference;
     @WritesAttribute(attribute = RouteOnFirstMatch.ROUTE_ATTRIBUTE_KEY, description = "The relationship to which the FlowFile was routed")
 })
 @SeeAlso(classNames = {"org.apache.nifi.processors.standard.RouteOnAttribute"})
-@UseCase(
-    description = "Route data to exactly one relationship, chosen by the first of several prioritized conditions that its attributes satisfy.",
-    keywords = {"attributes", "routing", "first", "priority", "ordered", "expression language"},
-    configuration = """
-        For each route that a FlowFile might be routed to, add a new property. The name of the property is the name of the relationship, \
-        and the value is an Expression Language expression that returns a boolean value.
-
-        Open the Advanced UI and drag the routes into the order in which they should be evaluated, highest priority first. \
-        The order can only be seen and changed in the Advanced UI. While there is more than one route, the processor is invalid \
-        until every route has been placed there, including routes added in the configuration dialog.
-
-        For example:
-            - "urgent" = "${priority:equals('urgent')}"
-            - "large" = "${fileSize:gt(1000000)}"
-            - In the Advanced UI, "urgent" is dragged above "large"
-
-        A FlowFile that is urgent and large is routed only to `urgent`. A FlowFile that matches neither condition is routed to `unmatched`.
-        """
-)
 public class RouteOnFirstMatch extends AbstractProcessor {
 
     public static final String ROUTE_ATTRIBUTE_KEY = "RouteOnFirstMatch.Route";
@@ -106,21 +88,21 @@ public class RouteOnFirstMatch extends AbstractProcessor {
             .description("FlowFiles that do not match any user-defined expression will be routed here")
             .build();
 
-    private final AtomicReference<Set<Relationship>> relationships = new AtomicReference<>(Set.of(REL_NO_MATCH));
-    private volatile Set<String> dynamicPropertyNames = Set.of();
+    private final AtomicReference<Set<Relationship>> relationships = new AtomicReference<>(Collections.singleton(REL_NO_MATCH));
+    private volatile Set<String> dynamicPropertyNames = Collections.emptySet();
 
     /**
      * Conditions in evaluation order, built in {@link #onScheduled(ProcessContext)} for quick access in
      * {@link #onTrigger(ProcessContext, ProcessSession)}
      */
-    private volatile List<Route> routes = List.of();
+    private volatile List<Route> routes = Collections.emptyList();
 
     /**
      * The evaluation order as of the last validation. NiFi gives a processor its annotation data only through a context,
      * and revalidates it whenever the annotation data changes, so this is how the processor keeps up with the order
      * outside of validation and scheduling.
      */
-    private volatile List<String> lastValidatedOrder = List.of();
+    private volatile List<String> lastValidatedOrder = Collections.emptyList();
 
     @Override
     public Set<Relationship> getRelationships() {
@@ -164,14 +146,14 @@ public class RouteOnFirstMatch extends AbstractProcessor {
         } else if (oldValue == null) {
             newDynamicPropertyNames.add(descriptor.getName());
         }
-        this.dynamicPropertyNames = Set.copyOf(newDynamicPropertyNames);
+        this.dynamicPropertyNames = Collections.unmodifiableSet(newDynamicPropertyNames);
 
         final Set<Relationship> newRelationships = new HashSet<>();
         for (final String propertyName : newDynamicPropertyNames) {
             newRelationships.add(new Relationship.Builder().name(propertyName).build());
         }
         newRelationships.add(REL_NO_MATCH);
-        this.relationships.set(Set.copyOf(newRelationships));
+        this.relationships.set(Collections.unmodifiableSet(newRelationships));
     }
 
     @Override
@@ -189,7 +171,7 @@ public class RouteOnFirstMatch extends AbstractProcessor {
             results.add(new ValidationResult.Builder()
                     .subject(REL_NO_MATCH.getName())
                     .valid(false)
-                    .explanation("'%s' is reserved for FlowFiles that match no condition".formatted(REL_NO_MATCH.getName()))
+                    .explanation(String.format("'%s' is reserved for FlowFiles that match no condition", REL_NO_MATCH.getName()))
                     .build());
         }
 
@@ -201,7 +183,7 @@ public class RouteOnFirstMatch extends AbstractProcessor {
                         .valid(false)
                         .explanation("route names cannot contain line breaks")
                         .build());
-            } else if (!name.equals(name.strip())) {
+            } else if (hasSurroundingWhitespace(name)) {
                 results.add(new ValidationResult.Builder()
                         .subject(name)
                         .valid(false)
@@ -221,8 +203,8 @@ public class RouteOnFirstMatch extends AbstractProcessor {
                 results.add(new ValidationResult.Builder()
                         .subject("Evaluation Order")
                         .valid(false)
-                        .explanation("%s not been placed in the order; open Advanced to place %s"
-                                .formatted(describeRoutes(unplaced), unplaced.size() == 1 ? "it" : "them"))
+                        .explanation(String.format("%s not been placed in the order; open Advanced to place %s",
+                                describeRoutes(unplaced), unplaced.size() == 1 ? "it" : "them"))
                         .build());
             }
         } catch (final IllegalArgumentException e) {
@@ -257,7 +239,7 @@ public class RouteOnFirstMatch extends AbstractProcessor {
             newRoutes.add(new Route(relationship, context.getProperty(dynamicDescriptors.get(name))));
         }
 
-        this.routes = List.copyOf(newRoutes);
+        this.routes = Collections.unmodifiableList(newRoutes);
     }
 
     @Override
@@ -269,8 +251,8 @@ public class RouteOnFirstMatch extends AbstractProcessor {
 
         Relationship destination = REL_NO_MATCH;
         for (final Route route : routes) {
-            if (route.condition().evaluateAttributeExpressions(flowFile).asBoolean()) {
-                destination = route.relationship();
+            if (route.condition.evaluateAttributeExpressions(flowFile).asBoolean()) {
+                destination = route.relationship;
                 break;
             }
         }
@@ -282,8 +264,15 @@ public class RouteOnFirstMatch extends AbstractProcessor {
     }
 
     private static String describeRoutes(final Set<String> names) {
-        final String quoted = String.join(", ", names.stream().map("'%s'"::formatted).toList());
-        return names.size() == 1 ? "route %s has".formatted(quoted) : "routes %s have".formatted(quoted);
+        final String quoted = names.stream().map(name -> "'" + name + "'").collect(Collectors.joining(", "));
+        return names.size() == 1 ? "route " + quoted + " has" : "routes " + quoted + " have";
+    }
+
+    /**
+     * Matches {@code !name.equals(name.strip())}, which needs Java 11
+     */
+    private static boolean hasSurroundingWhitespace(final String name) {
+        return !name.isEmpty() && (Character.isWhitespace(name.codePointAt(0)) || Character.isWhitespace(name.codePointBefore(name.length())));
     }
 
     /**
@@ -300,9 +289,16 @@ public class RouteOnFirstMatch extends AbstractProcessor {
             }
         }
         ordered.addAll(new TreeSet<>(conditionNames));
-        return List.copyOf(ordered);
+        return Collections.unmodifiableList(new ArrayList<>(ordered));
     }
 
-    private record Route(Relationship relationship, PropertyValue condition) {
+    private static final class Route {
+        private final Relationship relationship;
+        private final PropertyValue condition;
+
+        private Route(final Relationship relationship, final PropertyValue condition) {
+            this.relationship = relationship;
+            this.condition = condition;
+        }
     }
 }

@@ -17,37 +17,10 @@
 import { Component } from '@angular/core';
 import { RouteListing } from './route-listing/route-listing.component';
 
-const DARK_THEME = 'DARK_THEME';
-const LIGHT_THEME = 'LIGHT_THEME';
-
-/**
- * Reads the theme the user chose in NiFi. The custom UI is served from the same origin as NiFi,
- * so it shares NiFi's local storage, where the choice is kept as {"item": "DARK_THEME"}.
- */
-function nifiThemeSetting(): string | null {
-    try {
-        const entry = localStorage.getItem('theme');
-        return entry ? JSON.parse(entry).item : null;
-    } catch (_e) {
-        return null;
-    }
-}
-
-function applyTheme(osPrefersDark: boolean): void {
-    const theme = nifiThemeSetting();
-    const dark = theme === DARK_THEME || (theme !== LIGHT_THEME && osPrefersDark);
-    document.body.classList.toggle('darkMode', dark);
-}
-
+// NiFi 1.x has only a light theme, so the dark theme is never applied
 @Component({
     selector: 'route-on-first-match',
     template: '<route-listing></route-listing>',
     imports: [RouteListing]
 })
-export class AppComponent {
-    constructor() {
-        const darkModeQuery = window.matchMedia?.('(prefers-color-scheme: dark)');
-        applyTheme(darkModeQuery?.matches ?? false);
-        darkModeQuery?.addEventListener('change', (e) => applyTheme(e.matches));
-    }
-}
+export class AppComponent {}

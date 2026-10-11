@@ -22,6 +22,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -44,8 +45,8 @@ final class EvaluationOrder {
      * @throws IllegalArgumentException if the annotation data is not in the expected form
      */
     static List<String> fromAnnotationData(final String annotationData) {
-        if (annotationData == null || annotationData.isBlank()) {
-            return List.of();
+        if (annotationData == null || annotationData.trim().isEmpty()) {
+            return Collections.emptyList();
         }
 
         final JsonNode root;
@@ -60,19 +61,19 @@ final class EvaluationOrder {
 
         final JsonNode order = root.get(FIELD);
         if (order == null || order.isNull()) {
-            return List.of();
+            return Collections.emptyList();
         }
         if (!order.isArray()) {
-            throw new IllegalArgumentException("'%s' saved by the Advanced UI is not a list".formatted(FIELD));
+            throw new IllegalArgumentException(String.format("'%s' saved by the Advanced UI is not a list", FIELD));
         }
 
         final List<String> names = new ArrayList<>();
         for (final JsonNode name : order) {
             if (!name.isTextual()) {
-                throw new IllegalArgumentException("'%s' saved by the Advanced UI contains a value that is not a route name".formatted(FIELD));
+                throw new IllegalArgumentException(String.format("'%s' saved by the Advanced UI contains a value that is not a route name", FIELD));
             }
             names.add(name.asText());
         }
-        return List.copyOf(names);
+        return Collections.unmodifiableList(names);
     }
 }

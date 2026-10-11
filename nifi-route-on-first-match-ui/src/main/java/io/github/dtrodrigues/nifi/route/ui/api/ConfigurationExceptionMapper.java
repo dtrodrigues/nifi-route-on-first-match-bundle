@@ -15,11 +15,11 @@
  */
 package io.github.dtrodrigues.nifi.route.ui.api;
 
-import jakarta.ws.rs.WebApplicationException;
-import jakarta.ws.rs.core.MediaType;
-import jakarta.ws.rs.core.Response;
-import jakarta.ws.rs.ext.ExceptionMapper;
-import jakarta.ws.rs.ext.Provider;
+import javax.ws.rs.WebApplicationException;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.ext.ExceptionMapper;
+import javax.ws.rs.ext.Provider;
 import org.apache.nifi.web.InvalidRevisionException;
 import org.apache.nifi.web.ResourceNotFoundException;
 
@@ -32,8 +32,8 @@ public class ConfigurationExceptionMapper implements ExceptionMapper<Exception> 
 
     @Override
     public Response toResponse(final Exception exception) {
-        if (exception instanceof WebApplicationException webApplicationException) {
-            return webApplicationException.getResponse();
+        if (exception instanceof WebApplicationException) {
+            return ((WebApplicationException) exception).getResponse();
         }
 
         final Response.Status status;

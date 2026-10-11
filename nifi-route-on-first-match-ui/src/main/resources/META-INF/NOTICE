@@ -42,7 +42,7 @@ The following binary components are provided under the Common Development and Di
     (CDDL 1.1) (GPL2 w/ CPE) hk2-api (org.glassfish.hk2.core:hk2-api:jar:2.5.0-b42 - https://javaee.github.io/glassfish/)
     (CDDL 1.1) (GPL2 w/ CPE) hk2-utils (org.glassfish.hk2.core:hk2-utils:jar:2.5.0-b42 - https://javaee.github.io/glassfish/)
     (CDDL 1.1) (GPL2 w/ CPE) hk2-locator (org.glassfish.hk2.core:hk2-locator:jar:2.5.0-b42 - https://javaee.github.io/glassfish/)
-    (CDDL 1.1) (GPL2 w/ CPE) Jakarta RESTful Web Services (jakarta.ws.rs:jakarta.ws.rs-api:jar:4.0.0 - https://jakarta.ee/specifications/restful-ws/)
+    (CDDL 1.1) (GPL2 w/ CPE) Jakarta RESTful Web Services (jakarta.ws.rs:jakarta.ws.rs-api:jar:2.1.6 - https://github.com/eclipse-ee4j/jaxrs-api)
 
 ************************
 Common Development and Distribution License 1.0

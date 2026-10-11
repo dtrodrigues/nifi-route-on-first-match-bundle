@@ -14,42 +14,42 @@ otherwise end up chaining several `RouteOnAttribute` processors. RouteOnFirstMat
 
 ## How it works
 
-- Each user-defined property is a route. Its name becomes a relationship, and its value is an
-  Expression Language condition that returns `true` or `false`.
-- Routes are evaluated in the order you set by dragging them in the processor's **Advanced** UI,
-  highest priority first. With more than one route, the processor is invalid until every route,
-  including ones added in the configuration dialog, has been placed there.
+- Routes are added, edited and ordered in the processor's **Advanced** UI. Each route has a name, which
+  becomes a relationship, and an Expression Language condition that returns `true` or `false`.
+- Routes are evaluated in the order shown there, highest priority first.
 - Evaluation stops at the first match. A FlowFile is never cloned.
 - FlowFiles that match nothing go to `unmatched`.
 - The chosen route is written to the `RouteOnFirstMatch.Route` attribute.
 
 Example:
 
-| Property           | Value                           |
-|--------------------|---------------------------------|
-| `urgent`           | `${priority:equals('urgent')}`  |
-| `large`            | `${fileSize:gt(1000000)}`       |
+| Route    | Condition                       |
+|----------|---------------------------------|
+| `urgent` | `${priority:equals('urgent')}`  |
+| `large`  | `${fileSize:gt(1000000)}`       |
 
-With `urgent` dragged above `large`, a FlowFile that is both urgent and large goes only to `urgent`.
+With `urgent` above `large`, a FlowFile that is both urgent and large goes only to `urgent`.
 Drag `large` above `urgent` and it goes only to `large`.
 
-### The order is set only in the Advanced UI
+### Routes are set only in the Advanced UI
 
 Right-click the processor and choose **Advanced**. The routes appear as a numbered list:
 
-- drag a route by its handle to change its priority;
+- use **+** to add a route;
 - click a route to edit its name or condition;
-- use **+** to add a route, and a route's menu to delete it.
+- drag a route by its handle to change its priority;
+- use a route's menu to delete it.
 
 Every change is saved to the processor right away. The processor must be stopped to make changes.
 
-The order is stored in the processor's annotation data, which the configuration dialog does not show,
-so it cannot be seen or changed there. A route added in the configuration dialog has no place in the order,
-so the processor is invalid until you open **Advanced** and either drag it into place or click
-**Accept order**, which keeps it where it is shown, at the end. A processor with only one route needs no order.
+The routes are not properties, so the configuration dialog does not show them. A property added there is
+invalid, with a reminder to add the route in **Advanced** instead.
 
-Outside the browser, the order is the processor's `annotationData`, for example
-`{"evaluationOrder": ["urgent", "large"]}`, in the REST API and in flow definitions.
+Conditions can use parameters, such as `${fileSize:gt(#{large.threshold})}`. A changed parameter value takes
+effect the next time the processor is started, since NiFi only restarts processors whose properties use the parameter.
+
+Outside the browser, the routes are the processor's `annotationData` in the REST API and in flow definitions, for example
+`{"routes": [{"name": "urgent", "expression": "${priority:equals('urgent')}"}]}`.
 
 ## Compatibility
 

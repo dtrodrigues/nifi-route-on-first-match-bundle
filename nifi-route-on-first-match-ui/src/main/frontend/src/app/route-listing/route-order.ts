@@ -15,10 +15,10 @@
  */
 
 /**
- * Field of the annotation data that holds the evaluation order. Annotation data is not shown in the configuration
- * dialog, so the order can only be seen and changed here. Must match EvaluationOrder.FIELD.
+ * Field of the annotation data that holds the routes, in evaluation order. Annotation data is not shown in the
+ * configuration dialog, so the routes can only be seen and changed here. Must match RouteDefinitions.ROUTES.
  */
-const ORDER_FIELD = 'evaluationOrder';
+const ROUTES_FIELD = 'routes';
 
 /** Relationship that receives FlowFiles matching no route. Must match RouteOnFirstMatch.REL_NO_MATCH. */
 export const UNMATCHED = 'unmatched';
@@ -28,36 +28,43 @@ export interface Route {
     expression: string;
 }
 
-/** Property changes to send to the processor. A null value removes the property. */
-export type PropertyUpdates = Record<string, string | null>;
-
-/** A change to save: the evaluation order, which is kept in the annotation data, and any route properties. */
+/** A change to save: all routes, in evaluation order, which are kept in the annotation data. */
 export interface ConfigurationUpdate {
     annotationData: string;
-    properties: PropertyUpdates;
+}
+
+function isRoute(value: unknown): value is Route {
+    return (
+        value !== null &&
+        typeof value === 'object' &&
+        typeof (value as Route).name === 'string' &&
+        typeof (value as Route).expression === 'string'
+    );
 }
 
 /**
- * Reads the evaluation order from the annotation data. Anything unreadable is treated as no order; the processor
- * reports it as invalid, and the next save from this UI replaces it.
+ * Reads the routes from the annotation data, in evaluation order. Anything unreadable is treated as no routes; the
+ * processor reports it as invalid, and the next save from this UI replaces it.
  */
-export function parseAnnotationData(annotationData: string | null | undefined): string[] {
+export function toRoutes(annotationData: string | null | undefined): Route[] {
     if (!annotationData || annotationData.trim().length === 0) {
         return [];
     }
     try {
-        const order = JSON.parse(annotationData)?.[ORDER_FIELD];
-        return Array.isArray(order) ? order.filter((name): name is string => typeof name === 'string') : [];
+        const routes = JSON.parse(annotationData)?.[ROUTES_FIELD];
+        return Array.isArray(routes)
+            ? routes.filter(isRoute).map((route) => ({ name: route.name, expression: route.expression }))
+            : [];
     } catch (_e) {
         return [];
     }
 }
 
 /**
- * Whether the annotation data holds something other than a readable order, which makes the processor invalid.
- * Must agree with EvaluationOrder.fromAnnotationData.
+ * Whether the annotation data holds something other than readable routes, which makes the processor invalid.
+ * Must agree with RouteDefinitions.fromAnnotationData.
  */
-export function isOrderUnreadable(annotationData: string | null | undefined): boolean {
+export function areRoutesUnreadable(annotationData: string | null | undefined): boolean {
     if (!annotationData || annotationData.trim().length === 0) {
         return false;
     }
@@ -66,53 +73,14 @@ export function isOrderUnreadable(annotationData: string | null | undefined): bo
         if (root === null || typeof root !== 'object' || Array.isArray(root)) {
             return true;
         }
-        const order = root[ORDER_FIELD];
-        if (order === undefined || order === null) {
+        const routes = root[ROUTES_FIELD];
+        if (routes === undefined || routes === null) {
             return false;
         }
-        return !Array.isArray(order) || order.some((name) => typeof name !== 'string');
+        return !Array.isArray(routes) || !routes.every(isRoute);
     } catch (_e) {
         return true;
     }
-}
-
-/**
- * Builds the routes in evaluation order: routes in the saved order first, then routes not yet placed, such as those
- * added in the configuration dialog, alphabetically. Accepting the order shown saves them in that position.
- */
-export function toRoutes(
-    properties: Record<string, string | null>,
-    annotationData: string | null | undefined
-): Route[] {
-    const routes = new Map<string, Route>();
-    // every property is a route, and routes always have an expression
-    Object.entries(properties).forEach(([name, expression]) =>
-        routes.set(name, { name, expression: expression as string })
-    );
-
-    const ordered: Route[] = [];
-    parseAnnotationData(annotationData).forEach((name) => {
-        const route = routes.get(name);
-        if (route) {
-            ordered.push(route);
-            routes.delete(name);
-        }
-    });
-
-    const remaining = Array.from(routes.values()).sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
-    return [...ordered, ...remaining];
-}
-
-/**
- * Routes that have not been placed in the saved order. The processor is invalid while there are any, unless there is
- * only one route. Must agree with RouteOnFirstMatch.customValidate.
- */
-export function unplacedRoutes(routes: Route[], annotationData: string | null | undefined): string[] {
-    if (routes.length < 2) {
-        return [];
-    }
-    const order = parseAnnotationData(annotationData);
-    return routes.map((route) => route.name).filter((name) => !order.includes(name));
 }
 
 export type RouteNameError = 'required' | 'reserved' | 'duplicate';
@@ -135,11 +103,12 @@ export function routeNameError(input: string, routes: Route[], originalName: str
     return null;
 }
 
-/** Saves the order of the given routes along with any route property changes. */
-export function reorderUpdate(routes: Route[], properties: PropertyUpdates = {}): ConfigurationUpdate {
+/** Saves the given routes, in the order given. */
+export function routesUpdate(routes: Route[]): ConfigurationUpdate {
     return {
-        annotationData: JSON.stringify({ [ORDER_FIELD]: routes.map((route) => route.name) }),
-        properties
+        annotationData: JSON.stringify({
+            [ROUTES_FIELD]: routes.map((route) => ({ name: route.name, expression: route.expression }))
+        })
     };
 }
 
@@ -147,25 +116,12 @@ export function reorderUpdate(routes: Route[], properties: PropertyUpdates = {})
  * Adds a route at the end of the list, or replaces the route currently named originalName in place.
  */
 export function saveRouteUpdate(routes: Route[], route: Route, originalName: string | null): ConfigurationUpdate {
-    const properties: PropertyUpdates = {};
-    let updated: Route[];
-
     if (originalName === null) {
-        updated = [...routes, route];
-    } else {
-        updated = routes.map((existing) => (existing.name === originalName ? route : existing));
-        if (originalName !== route.name) {
-            properties[originalName] = null;
-        }
+        return routesUpdate([...routes, route]);
     }
-
-    properties[route.name] = route.expression;
-    return reorderUpdate(updated, properties);
+    return routesUpdate(routes.map((existing) => (existing.name === originalName ? route : existing)));
 }
 
 export function deleteRouteUpdate(routes: Route[], name: string): ConfigurationUpdate {
-    return reorderUpdate(
-        routes.filter((route) => route.name !== name),
-        { [name]: null }
-    );
+    return routesUpdate(routes.filter((route) => route.name !== name));
 }

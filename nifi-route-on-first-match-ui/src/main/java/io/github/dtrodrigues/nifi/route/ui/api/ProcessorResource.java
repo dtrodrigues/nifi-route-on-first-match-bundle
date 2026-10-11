@@ -29,8 +29,6 @@ import org.apache.nifi.web.ComponentDetails;
 import org.apache.nifi.web.NiFiWebConfigurationContext;
 import org.apache.nifi.web.NiFiWebConfigurationRequestContext;
 
-import java.util.Map;
-
 @Path("/processor")
 public class ProcessorResource extends AbstractRouteResource {
 
@@ -54,8 +52,8 @@ public class ProcessorResource extends AbstractRouteResource {
 
         final NiFiWebConfigurationContext nifiWebContext = getWebConfigurationContext();
         final NiFiWebConfigurationRequestContext niFiRequestContext = ProcessorWebUtils.getRequestContext(processorId, revisionId, clientId, isDisconnectionAcknowledged, request);
-        // The order (annotation data) and the routes (properties) are saved together, so a rename and its new place in the order apply at once
-        final ComponentDetails componentDetails = nifiWebContext.updateComponent(niFiRequestContext, update.getAnnotationData(), update.getProperties());
+        // The routes are kept only in the annotation data, so the processor has no properties to change
+        final ComponentDetails componentDetails = nifiWebContext.updateComponent(niFiRequestContext, update.getAnnotationData(), null);
         final Response.ResponseBuilder response = ProcessorWebUtils.applyCacheControl(Response.ok(componentDetails));
         return response.build();
     }
@@ -63,10 +61,9 @@ public class ProcessorResource extends AbstractRouteResource {
     public static class ConfigurationUpdate {
 
         private String annotationData;
-        private Map<String, String> properties;
 
         /**
-         * @return the evaluation order, or null to leave it unchanged
+         * @return the routes in evaluation order
          */
         public String getAnnotationData() {
             return annotationData;
@@ -74,17 +71,6 @@ public class ProcessorResource extends AbstractRouteResource {
 
         public void setAnnotationData(final String annotationData) {
             this.annotationData = annotationData;
-        }
-
-        /**
-         * @return the properties to change; a null value removes the property
-         */
-        public Map<String, String> getProperties() {
-            return properties;
-        }
-
-        public void setProperties(final Map<String, String> properties) {
-            this.properties = properties;
         }
     }
 

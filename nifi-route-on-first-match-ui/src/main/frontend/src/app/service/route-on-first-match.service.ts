@@ -24,7 +24,6 @@ export interface ProcessorDetails {
     name: string;
     state: string;
     annotationData: string | null;
-    properties: Record<string, string | null>;
     validationErrors: string[] | null;
 }
 

@@ -34,8 +34,8 @@
                     Routes are evaluated from top to bottom. Each FlowFile is sent to the first route whose expression
                     returns true.
                     @if (editable) {
-                        Drag a route by its handle to change its priority. Routes can also be added and edited in the
-                        configuration dialog, but their order can only be set here.
+                        Drag a route by its handle to change its priority. Each route's name becomes a relationship.
+                        Routes can only be added, changed and ordered here.
                     } @else {
                         The processor must be stopped to change routes.
                     }
@@ -52,22 +52,10 @@
             @if (saveError(); as saveError) {
                 <div class="flex items-center"><i class="fa fa-warning caution-color mr-2"></i>{{ saveError }}</div>
             }
-            @if (orderUnreadable() || unplaced().length > 0) {
-                <div class="flex items-center gap-x-2">
-                    <i class="fa fa-warning caution-color"></i>
-                    <div class="flex-1">
-                        @if (orderUnreadable()) {
-                            The saved order cannot be read. Accept the order shown to replace it.
-                        } @else {
-                            Not yet placed in the order: {{ unplaced().join(', ') }}. Drag them into place, or accept
-                            the order shown.
-                        }
-                    </div>
-                    @if (editable) {
-                        <button mat-stroked-button [disabled]="saving() || editing() !== null" (click)="acceptOrder()">
-                            Accept order
-                        </button>
-                    }
+            @if (routesUnreadable()) {
+                <div class="flex items-center">
+                    <i class="fa fa-warning caution-color mr-2"></i>The saved routes cannot be read. Adding a route
+                    replaces them.
                 </div>
             }
             @for (validationError of validationErrors(); track validationError) {
@@ -108,9 +96,6 @@
                                                 (click)="$event.stopPropagation()"></span>
                                             <span class="route-index unset mr-2">{{ i + 1 }}.</span>
                                             <span class="truncate">{{ route.name }}</span>
-                                            @if (unplaced().includes(route.name)) {
-                                                <span class="unset ml-2 whitespace-nowrap">not placed</span>
-                                            }
                                         </div>
                                     </mat-panel-title>
                                     <mat-panel-description>

@@ -29,8 +29,6 @@ import org.apache.nifi.web.ComponentDetails;
 import org.apache.nifi.web.NiFiWebConfigurationContext;
 import org.apache.nifi.web.NiFiWebConfigurationRequestContext;
 
-import java.util.Map;
-
 @Path("/processor")
 public class ProcessorResource extends AbstractRouteResource {
 
@@ -54,17 +52,16 @@ public class ProcessorResource extends AbstractRouteResource {
 
         final NiFiWebConfigurationContext nifiWebContext = getWebConfigurationContext();
         final NiFiWebConfigurationRequestContext niFiRequestContext = ProcessorWebUtils.getRequestContext(processorId, revisionId, clientId, isDisconnectionAcknowledged, request);
-        // The order (annotation data) and the routes (properties) are saved together, so a rename and its new place in the order apply at once
-        final ComponentDetails componentDetails = nifiWebContext.updateComponent(niFiRequestContext, update.annotationData(), update.properties());
+        // The routes are kept only in the annotation data, so the processor has no properties to change
+        final ComponentDetails componentDetails = nifiWebContext.updateComponent(niFiRequestContext, update.annotationData(), null);
         final Response.ResponseBuilder response = ProcessorWebUtils.applyCacheControl(Response.ok(componentDetails));
         return response.build();
     }
 
     /**
-     * @param annotationData the evaluation order, or null to leave it unchanged
-     * @param properties the properties to change; a null value removes the property
+     * @param annotationData the routes in evaluation order
      */
-    public record ConfigurationUpdate(String annotationData, Map<String, String> properties) {
+    public record ConfigurationUpdate(String annotationData) {
     }
 
 }

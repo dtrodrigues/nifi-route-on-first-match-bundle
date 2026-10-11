@@ -28,16 +28,15 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { Observable } from 'rxjs';
 import { ProcessorDetails, RouteOnFirstMatchService } from '../service/route-on-first-match.service';
 import {
+    areRoutesUnreadable,
     ConfigurationUpdate,
     deleteRouteUpdate,
-    isOrderUnreadable,
-    reorderUpdate,
     Route,
     routeNameError,
+    routesUpdate,
     saveRouteUpdate,
     toRoutes,
-    UNMATCHED,
-    unplacedRoutes
+    UNMATCHED
 } from './route-order';
 
 /** Marks the panel for a route that has not been saved yet. */
@@ -84,8 +83,7 @@ export class RouteListing {
     processorName = signal('');
     validationErrors = signal<string[]>([]);
     routes = signal<Route[]>([]);
-    unplaced = signal<string[]>([]);
-    orderUnreadable = signal(false);
+    routesUnreadable = signal(false);
     editing = signal<string | null>(null);
 
     reorderDisabled = computed(() => !this.editable || this.saving() || this.editing() !== null);
@@ -122,12 +120,7 @@ export class RouteListing {
         const reordered = [...this.routes()];
         moveItemInArray(reordered, event.previousIndex, event.currentIndex);
         this.routes.set(reordered);
-        this.save(reorderUpdate(reordered));
-    }
-
-    /** Saves the order as shown, which places any unplaced routes at the end and replaces an unreadable order. */
-    acceptOrder(): void {
-        this.save(reorderUpdate(this.routes()));
+        this.save(routesUpdate(reordered));
     }
 
     startEdit(route: Route): void {
@@ -213,9 +206,8 @@ export class RouteListing {
             this.clientId = details.revision.clientId;
         }
         this.processorName.set(details.name);
-        this.routes.set(toRoutes(details.properties ?? {}, details.annotationData));
-        this.unplaced.set(unplacedRoutes(this.routes(), details.annotationData));
-        this.orderUnreadable.set(isOrderUnreadable(details.annotationData));
+        this.routes.set(toRoutes(details.annotationData));
+        this.routesUnreadable.set(areRoutesUnreadable(details.annotationData));
         this.validationErrors.set(details.validationErrors ?? []);
 
         // The routes may have been changed elsewhere, which a failed save reloads. Stop editing a route that was

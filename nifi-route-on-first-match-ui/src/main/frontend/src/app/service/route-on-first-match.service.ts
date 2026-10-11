@@ -28,7 +28,6 @@ export interface ProcessorDetails {
         clientId: string | null;
     };
     annotationData: string | null;
-    properties: Record<string, string | null>;
     validationErrors: string[] | null;
 }
 

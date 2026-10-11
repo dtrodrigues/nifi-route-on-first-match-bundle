@@ -15,96 +15,59 @@
  */
 
 import {
+    areRoutesUnreadable,
     deleteRouteUpdate,
-    isOrderUnreadable,
-    parseAnnotationData,
-    reorderUpdate,
     Route,
     routeNameError,
+    routesUpdate,
     saveRouteUpdate,
-    toRoutes,
-    unplacedRoutes
+    toRoutes
 } from './route-order';
 
 describe('route-order', () => {
     const urgent: Route = { name: 'urgent', expression: "${priority:equals('urgent')}" };
     const large: Route = { name: 'large', expression: '${size:gt(100)}' };
 
-    const order = (...names: string[]) => JSON.stringify({ evaluationOrder: names });
+    const saved = (...routes: Route[]) => JSON.stringify({ routes });
 
-    it('should read the evaluation order from the annotation data', () => {
-        expect(parseAnnotationData(order('b', 'a'))).toEqual(['b', 'a']);
-        expect(parseAnnotationData(null)).toEqual([]);
-        expect(parseAnnotationData('{}')).toEqual([]);
-        expect(parseAnnotationData('not json')).toEqual([]);
-        expect(parseAnnotationData('{"evaluationOrder": "a"}')).toEqual([]);
+    it('should read the routes in order from the annotation data', () => {
+        expect(toRoutes(saved(large, urgent))).toEqual([large, urgent]);
+        expect(toRoutes(null)).toEqual([]);
+        expect(toRoutes('{}')).toEqual([]);
+        expect(toRoutes('not json')).toEqual([]);
+        expect(toRoutes('{"routes": "a"}')).toEqual([]);
     });
 
-    it('should detect an order the processor cannot read', () => {
-        expect(isOrderUnreadable(null)).toBe(false);
-        expect(isOrderUnreadable(' ')).toBe(false);
-        expect(isOrderUnreadable('{}')).toBe(false);
-        expect(isOrderUnreadable(order('a'))).toBe(false);
-        expect(isOrderUnreadable('not json')).toBe(true);
-        expect(isOrderUnreadable(order('a') + ' garbage')).toBe(true);
-        expect(isOrderUnreadable('null')).toBe(true);
-        expect(isOrderUnreadable('["a"]')).toBe(true);
-        expect(isOrderUnreadable('{"evaluationOrder": "a"}')).toBe(true);
-        expect(isOrderUnreadable('{"evaluationOrder": [1]}')).toBe(true);
+    it('should detect routes the processor cannot read', () => {
+        expect(areRoutesUnreadable(null)).toBe(false);
+        expect(areRoutesUnreadable(' ')).toBe(false);
+        expect(areRoutesUnreadable('{}')).toBe(false);
+        expect(areRoutesUnreadable(saved(urgent))).toBe(false);
+        expect(areRoutesUnreadable('not json')).toBe(true);
+        expect(areRoutesUnreadable(saved(urgent) + ' garbage')).toBe(true);
+        expect(areRoutesUnreadable('null')).toBe(true);
+        expect(areRoutesUnreadable('[]')).toBe(true);
+        expect(areRoutesUnreadable('{"routes": {}}')).toBe(true);
+        expect(areRoutesUnreadable('{"routes": ["urgent"]}')).toBe(true);
+        expect(areRoutesUnreadable('{"routes": [{"name": "urgent"}]}')).toBe(true);
     });
 
-    it('should order saved routes first, then the rest alphabetically', () => {
-        const routes = toRoutes(
-            {
-                a: 'A',
-                b: 'B',
-                c: 'C',
-                d: 'D'
-            },
-            order('c', 'missing', 'a')
-        );
-        expect(routes.map((route) => route.name)).toEqual(['c', 'a', 'b', 'd']);
-        expect(routes[0].expression).toEqual('C');
-    });
-
-    it('should find routes not yet placed, unless there is only one route', () => {
-        expect(unplacedRoutes([urgent, large], order('urgent'))).toEqual(['large']);
-        expect(unplacedRoutes([urgent, large], null)).toEqual(['urgent', 'large']);
-        expect(unplacedRoutes([urgent, large], order('large', 'urgent'))).toEqual([]);
-        expect(unplacedRoutes([urgent], null)).toEqual([]);
-    });
-
-    it('should save the new order when reordering', () => {
-        expect(reorderUpdate([large, urgent])).toEqual({
-            annotationData: order('large', 'urgent'),
-            properties: {}
-        });
+    it('should save the routes in the order given', () => {
+        expect(routesUpdate([large, urgent])).toEqual({ annotationData: saved(large, urgent) });
     });
 
     it('should append a new route', () => {
-        expect(saveRouteUpdate([urgent], large, null)).toEqual({
-            annotationData: order('urgent', 'large'),
-            properties: { large: large.expression }
-        });
+        expect(saveRouteUpdate([urgent], large, null)).toEqual({ annotationData: saved(urgent, large) });
     });
 
-    it('should rename a route in place, removing the old property', () => {
+    it('should rename a route in place', () => {
         const renamed: Route = { name: 'critical', expression: urgent.expression };
-        expect(saveRouteUpdate([urgent, large], renamed, 'urgent')).toEqual({
-            annotationData: order('critical', 'large'),
-            properties: { urgent: null, critical: urgent.expression }
-        });
+        expect(saveRouteUpdate([urgent, large], renamed, 'urgent')).toEqual({ annotationData: saved(renamed, large) });
     });
 
     it('should delete a route', () => {
-        expect(deleteRouteUpdate([urgent, large], 'urgent')).toEqual({
-            annotationData: order('large'),
-            properties: { urgent: null }
-        });
-        expect(deleteRouteUpdate([urgent], 'urgent')).toEqual({
-            annotationData: order(),
-            properties: { urgent: null }
-        });
+        expect(deleteRouteUpdate([urgent, large], 'urgent')).toEqual({ annotationData: saved(large) });
+        expect(deleteRouteUpdate([urgent], 'urgent')).toEqual({ annotationData: saved() });
     });
 
     it('should reject route names that cannot be used as relationships', () => {

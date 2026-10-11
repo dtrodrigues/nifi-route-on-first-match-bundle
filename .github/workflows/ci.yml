@@ -23,9 +23,9 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: 21
@@ -38,7 +38,7 @@ jobs:
           echo "$RUNNER_TEMP/apache-maven-${MAVEN_VERSION}/bin" >> "$GITHUB_PATH"
 
       # Maven runs npm ci for the Advanced UI, which reuses packages from this cache
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: ~/.npm
           key: npm-${{ hashFiles('nifi-route-on-first-match-ui/src/main/frontend/package-lock.json') }}
@@ -49,7 +49,7 @@ jobs:
         run: mvn --batch-mode --no-transfer-progress verify
 
       - name: Upload NAR
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: nifi-route-on-first-match-nar
           path: nifi-route-on-first-match-nar/target/*.nar
@@ -58,7 +58,7 @@ jobs:
 
       - name: Upload test reports
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: test-reports
           path: '**/target/surefire-reports/'

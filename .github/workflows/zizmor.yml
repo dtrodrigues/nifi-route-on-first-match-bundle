@@ -1,0 +1,39 @@
+# Audits the GitHub Actions workflows with zizmor and reports findings in the Security tab's code scanning alerts
+name: GitHub Actions security
+
+on:
+  push:
+    paths:
+      - '.github/**'
+  pull_request:
+    paths:
+      - '.github/**'
+  # Online audits, such as known-vulnerable actions, can find new problems without any change here
+  schedule:
+    - cron: '17 6 * * 1'
+  workflow_dispatch:
+
+permissions: {}
+
+# A newer push to the same branch makes an older run's result irrelevant
+concurrency:
+  group: zizmor-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  zizmor:
+    name: zizmor
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read # checks out the workflows to audit
+      security-events: write # uploads the findings to code scanning
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: zizmorcore/zizmor-action@cc914d7f3750a2d13d75c7f184a1060aa0e9d482 # v0.6.4
+        with:
+          # A fixed zizmor version, so a new release cannot fail the build without a change here
+          version: 1.30.1

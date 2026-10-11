@@ -35,9 +35,14 @@
         <url-pattern>/api/*</url-pattern>
     </servlet-mapping>
 
-    <!-- NiFi opens the Advanced UI with its parameters in the query string, which the page reads itself -->
-    <welcome-file-list>
-        <welcome-file>index.html</welcome-file>
-    </welcome-file-list>
+    <!-- NiFi 1.x opens the Advanced UI at /configure, with its parameters in the query string, which the page reads itself -->
+    <servlet>
+        <servlet-name>configure</servlet-name>
+        <servlet-class>io.github.dtrodrigues.nifi.route.ui.servlet.ConfigureServlet</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>configure</servlet-name>
+        <url-pattern>/configure</url-pattern>
+    </servlet-mapping>
 </web-app>
 
